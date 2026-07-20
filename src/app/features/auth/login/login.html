@@ -1,1 +1,183 @@
-<p>login works!</p>
+<main class="atlas-login">
+  <div class="ambient" aria-hidden="true">
+    <span class="ambient__flare ambient__flare--one"></span>
+    <span class="ambient__flare ambient__flare--two"></span>
+    <span class="ambient__noise"></span>
+  </div>
+
+  <section class="brand-panel" aria-labelledby="atlas-heading">
+    <header class="brand-bar">
+      <a class="brand" href="/" aria-label="Atlas Protocol — início">
+        <span class="brand__mark">A</span>
+        <span>ATLAS <strong>PROTOCOL</strong></span>
+      </a>
+
+      <span class="brand-bar__status">
+        <i></i>
+        Ambiente seguro
+      </span>
+    </header>
+
+    <div class="brand-content">
+      <p class="eyebrow">
+        <span>01</span>
+        PROTOCOLO DE PERFORMANCE
+      </p>
+
+      <h1 id="atlas-heading">
+        Potência exige<br />
+        <em>precisão.</em>
+      </h1>
+
+      <p class="brand-copy">
+        Gestão inteligente de protocolos hormonais, evolução clínica e
+        performance — organizada em um só lugar.
+      </p>
+
+      <div class="pillars" aria-label="Pilares da plataforma">
+        <div>
+          <span>01</span>
+          <strong>Dados</strong>
+          <small>Histórico centralizado</small>
+        </div>
+
+        <div>
+          <span>02</span>
+          <strong>Controle</strong>
+          <small>Protocolos monitorados</small>
+        </div>
+
+        <div>
+          <span>03</span>
+          <strong>Evolução</strong>
+          <small>Resultados mensuráveis</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="molecule" aria-hidden="true">
+      <span class="ring ring--a"></span>
+      <span class="ring ring--b"></span>
+      <span class="ring ring--c"></span>
+      <span class="ring ring--d"></span>
+      <span class="bond bond--one"></span>
+      <span class="bond bond--two"></span>
+
+      <b>TESTOSTERONE</b>
+      <small>C₁₉H₂₈O₂</small>
+    </div>
+
+    <p class="brand-foot">CIÊNCIA · CONSISTÊNCIA · PERFORMANCE</p>
+  </section>
+
+  <section class="login-panel" aria-labelledby="login-title">
+    <div class="mobile-brand">
+      <span class="brand__mark">A</span>
+      <span>ATLAS <strong>PROTOCOL</strong></span>
+    </div>
+
+    <div class="login-card">
+      <div class="login-card__index" aria-hidden="true">// 01</div>
+
+      <header class="card-header">
+        <p class="eyebrow">ÁREA RESTRITA</p>
+        <h2 id="login-title">Bem-vindo de volta.</h2>
+        <p>Entre com suas credenciais para acessar seu painel.</p>
+      </header>
+
+      <form
+        class="login-form"
+        (ngSubmit)="login()"
+        #loginForm="ngForm"
+      >
+        <div class="form-field">
+          <label for="email">Email corporativo</label>
+
+          <div class="input-shell">
+            <span aria-hidden="true">@</span>
+
+            <input
+              id="email"
+              type="email"
+              name="email"
+              [(ngModel)]="loginData.email"
+              placeholder="voce@empresa.com"
+              autocomplete="email"
+              required
+              email
+            />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="password">Senha</label>
+
+          <div class="input-shell">
+            <span aria-hidden="true">●</span>
+
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              name="password"
+              [(ngModel)]="loginData.password"
+              placeholder="Digite sua senha"
+              autocomplete="current-password"
+              required
+              minlength="6"
+            />
+
+            <button
+              class="password-toggle"
+              type="button"
+              (click)="togglePassword()"
+              [attr.aria-label]="
+                showPassword ? 'Ocultar senha' : 'Mostrar senha'
+              "
+            >
+              {{ showPassword ? 'Ocultar' : 'Mostrar' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="remember">
+            <input type="checkbox" />
+            <span>Lembrar acesso</span>
+          </label>
+
+          <a href="#" class="text-link">Esqueci minha senha</a>
+        </div>
+
+        @if (errorMessage) {
+          <p class="form-error" role="alert">
+            {{ errorMessage }}
+          </p>
+        }
+
+        <button
+          type="submit"
+          class="login-button"
+          [disabled]="loginForm.invalid || isLoading"
+        >
+          <span>
+            {{ isLoading ? 'AUTENTICANDO...' : 'ACESSAR PLATAFORMA' }}
+          </span>
+
+          @if (!isLoading) {
+            <b aria-hidden="true">→</b>
+          }
+        </button>
+      </form>
+
+      <footer class="card-footer">
+        <span>Primeiro acesso?</span>
+        <a href="#" class="text-link">Solicitar credenciais</a>
+      </footer>
+    </div>
+
+    <p class="security-note">
+      <span>◆</span>
+      Seus dados são protegidos e criptografados.
+    </p>
+  </section>
+</main>
