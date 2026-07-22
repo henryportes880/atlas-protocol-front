@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3333/api'
+  apiUrl: 'https://atlas-protocol-6yo0.onrender.com/api/v1',
 };

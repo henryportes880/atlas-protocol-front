@@ -1,0 +1,25 @@
+<div class="app-shell">
+  <app-sidebar
+    [open]="mobileNavigationOpen()"
+    (navigationClose)="closeNavigation()"
+  />
+
+  <button
+    type="button"
+    class="navigation-backdrop"
+    [class.is-visible]="mobileNavigationOpen()"
+    (click)="closeNavigation()"
+    aria-label="Fechar menu de navegação"
+    [attr.tabindex]="mobileNavigationOpen() ? 0 : -1"
+  ></button>
+
+  <section class="workspace">
+    <app-header (menuToggle)="toggleNavigation()" />
+
+    <main class="main-content" id="main-content">
+      <div class="page-container">
+        <router-outlet />
+      </div>
+    </main>
+  </section>
+</div>

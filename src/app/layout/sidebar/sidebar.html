@@ -1,0 +1,65 @@
+<aside aria-label="Navegação principal">
+  <div class="sidebar-header">
+    <app-atlas-brand />
+    <button type="button" class="close-button" (click)="close()" aria-label="Fechar menu">
+      <app-atlas-icon name="close" [size]="20" />
+    </button>
+  </div>
+
+  <nav>
+    <div class="nav-group">
+      <span class="nav-label">Principal</span>
+      @for (item of primaryItems; track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          #primaryLink="routerLinkActive"
+          [attr.aria-current]="primaryLink.isActive ? 'page' : null"
+          (click)="close()"
+        >
+          <app-atlas-icon [name]="item.icon" [size]="19" />
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </div>
+
+    <div class="nav-group">
+      <span class="nav-label">Rotina</span>
+      @for (item of routineItems; track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="is-active"
+          #routineLink="routerLinkActive"
+          [attr.aria-current]="routineLink.isActive ? 'page' : null"
+          (click)="close()"
+        >
+          <app-atlas-icon [name]="item.icon" [size]="19" />
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </div>
+  </nav>
+
+  <div class="sidebar-note">
+    <span class="note-mark" aria-hidden="true"></span>
+    <div>
+      <strong>Ambiente em evolução</strong>
+      <p>Novos módulos seguirão este padrão visual.</p>
+    </div>
+  </div>
+
+  <footer class="sidebar-footer">
+    <div class="mini-profile">
+      <span class="avatar" aria-hidden="true">{{ userInitials() }}</span>
+      <div class="profile-copy">
+        <strong>{{ auth.currentUser()?.name || 'Usuário Atlas' }}</strong>
+        <span>{{ roleLabel() }}</span>
+      </div>
+    </div>
+
+    <button type="button" class="logout-button" (click)="logout()" aria-label="Sair do Atlas">
+      <app-atlas-icon name="logout" [size]="18" />
+    </button>
+  </footer>
+</aside>

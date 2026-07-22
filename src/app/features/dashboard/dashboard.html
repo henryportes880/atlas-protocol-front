@@ -1,0 +1,132 @@
+<div class="dashboard">
+  <section class="welcome-card" aria-labelledby="dashboard-title">
+    <div class="welcome-copy">
+      <div class="welcome-meta">
+        <span class="section-kicker">Central de acompanhamento</span>
+        <span
+          class="ds-badge"
+          [class.ds-badge--positive]="auth.currentUser()?.active !== false"
+          [class.ds-badge--warning]="auth.currentUser()?.active === false"
+        >
+          <span class="status-dot" aria-hidden="true"></span>
+          {{ accountStatus() }}
+        </span>
+      </div>
+      <h1 id="dashboard-title">Olá, {{ firstName() }}.</h1>
+      <p>Seu espaço para manter informações, próximos passos e evolução organizados com clareza.</p>
+
+      <div class="welcome-actions">
+        <a class="ds-button ds-button--primary" routerLink="/app/protocols">
+          Ver protocolos
+          <app-atlas-icon name="arrow-right" [size]="17" />
+        </a>
+        <a class="ds-button ds-button--secondary" routerLink="/app/check-ins">
+          Acessar check-ins
+        </a>
+      </div>
+    </div>
+
+    <div class="atlas-orbit" aria-hidden="true">
+      <span class="orbit orbit--outer"></span>
+      <span class="orbit orbit--inner"></span>
+      <span class="orbit-node orbit-node--one"></span>
+      <span class="orbit-node orbit-node--two"></span>
+      <span class="orbit-core"><app-atlas-icon name="chart" [size]="30" /></span>
+    </div>
+  </section>
+
+  <section class="summary-section" aria-labelledby="summary-title">
+    <header class="section-header">
+      <div>
+        <span class="section-kicker">Resumo</span>
+        <h2 id="summary-title">Visão do momento</h2>
+      </div>
+      <span class="section-caption">Informações aparecem aqui conforme forem registradas.</span>
+    </header>
+
+    <div class="summary-grid">
+      <article class="summary-card">
+        <div class="card-topline">
+          <span class="card-icon"><app-atlas-icon name="flask" [size]="20" /></span>
+          <span class="ds-badge">Sem dados</span>
+        </div>
+        <span class="card-label">Protocolo ativo</span>
+        <h3>Nenhum protocolo ativo</h3>
+        <p>Quando houver um protocolo vinculado, o resumo será exibido neste espaço.</p>
+        <a routerLink="/app/protocols">Abrir módulo <app-atlas-icon name="arrow-right" [size]="15" /></a>
+      </article>
+
+      <article class="summary-card">
+        <div class="card-topline">
+          <span class="card-icon"><app-atlas-icon name="calendar" [size]="20" /></span>
+          <span class="ds-badge">A organizar</span>
+        </div>
+        <span class="card-label">Próximo acompanhamento</span>
+        <h3>Nenhum acompanhamento registrado</h3>
+        <p>Novos registros e próximos passos aparecerão aqui quando estiverem disponíveis.</p>
+        <a routerLink="/app/tracking">Abrir módulo <app-atlas-icon name="arrow-right" [size]="15" /></a>
+      </article>
+
+      <article class="summary-card">
+        <div class="card-topline">
+          <span class="card-icon"><app-atlas-icon name="clipboard" [size]="20" /></span>
+          <span class="ds-badge ds-badge--warning">Pendente</span>
+        </div>
+        <span class="card-label">Check-in semanal</span>
+        <h3>Check-in pendente</h3>
+        <p>O fluxo de check-in será apresentado aqui assim que o módulo for integrado.</p>
+        <a routerLink="/app/check-ins">Abrir módulo <app-atlas-icon name="arrow-right" [size]="15" /></a>
+      </article>
+    </div>
+  </section>
+
+  <section class="dashboard-lower-grid">
+    <article class="evolution-card" aria-labelledby="evolution-title">
+      <header class="panel-header">
+        <div>
+          <span class="section-kicker">Evolução recente</span>
+          <h2 id="evolution-title">Histórico visual</h2>
+        </div>
+        <span class="ds-badge ds-badge--primary">Gráfico futuro</span>
+      </header>
+
+      <div class="chart-empty">
+        <div class="chart-grid" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="empty-copy">
+          <span class="empty-icon"><app-atlas-icon name="chart" [size]="26" /></span>
+          <strong>Dados ainda não disponíveis</strong>
+          <p>A evolução será apresentada sem estimativas ou informações fictícias.</p>
+        </div>
+      </div>
+    </article>
+
+    <aside class="quick-actions" aria-labelledby="quick-actions-title">
+      <header class="panel-header">
+        <div>
+          <span class="section-kicker">Atalhos</span>
+          <h2 id="quick-actions-title">Ações rápidas</h2>
+        </div>
+      </header>
+
+      <nav aria-label="Ações rápidas do dashboard">
+        <a routerLink="/app/protocols">
+          <span class="action-icon"><app-atlas-icon name="flask" [size]="19" /></span>
+          <span><strong>Protocolos</strong><small>Consultar área de protocolos</small></span>
+          <app-atlas-icon class="action-arrow" name="arrow-right" [size]="17" />
+        </a>
+        <a routerLink="/app/tracking">
+          <span class="action-icon"><app-atlas-icon name="activity" [size]="19" /></span>
+          <span><strong>Acompanhamento</strong><small>Acessar histórico e registros</small></span>
+          <app-atlas-icon class="action-arrow" name="arrow-right" [size]="17" />
+        </a>
+        <a routerLink="/app/check-ins">
+          <span class="action-icon"><app-atlas-icon name="clipboard" [size]="19" /></span>
+          <span><strong>Check-ins</strong><small>Organizar o acompanhamento semanal</small></span>
+          <app-atlas-icon class="action-arrow" name="arrow-right" [size]="17" />
+        </a>
+      </nav>
+    </aside>
+  </section>
+</div>

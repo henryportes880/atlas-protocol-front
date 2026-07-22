@@ -1,183 +1,83 @@
-<main class="atlas-login">
-  <div class="ambient" aria-hidden="true">
-    <span class="ambient__flare ambient__flare--one"></span>
-    <span class="ambient__flare ambient__flare--two"></span>
-    <span class="ambient__noise"></span>
+<div class="login-page">
+  <div class="login-art" aria-hidden="true">
+    <img src="/images/atlas-hero.png" alt="" fetchpriority="high" decoding="async" />
   </div>
+  <div class="login-fade" aria-hidden="true"></div>
 
-  <section class="brand-panel" aria-labelledby="atlas-heading">
-    <header class="brand-bar">
-      <a class="brand" href="/" aria-label="Atlas Protocol — início">
-        <span class="brand__mark">A</span>
-        <span>ATLAS <strong>PROTOCOL</strong></span>
-      </a>
-
-      <span class="brand-bar__status">
-        <i></i>
-        Ambiente seguro
-      </span>
+  <div class="login-frame">
+    <header class="login-brand" aria-label="Atlas Protocol">
+      <app-atlas-brand [compact]="true" />
     </header>
 
-    <div class="brand-content">
-      <p class="eyebrow">
-        <span>01</span>
-        PROTOCOLO DE PERFORMANCE
-      </p>
+    <main class="login-main">
+      <section class="login-panel" aria-labelledby="login-title">
+        <header class="login-header">
+          <span class="login-eyebrow">Acesso ao Atlas</span>
+          <h1 id="login-title">Bem-vindo de volta</h1>
+          <p>Acompanhe sua jornada e sua evolução com clareza.</p>
+        </header>
 
-      <h1 id="atlas-heading">
-        Potência exige<br />
-        <em>precisão.</em>
-      </h1>
-
-      <p class="brand-copy">
-        Gestão inteligente de protocolos hormonais, evolução clínica e
-        performance — organizada em um só lugar.
-      </p>
-
-      <div class="pillars" aria-label="Pilares da plataforma">
-        <div>
-          <span>01</span>
-          <strong>Dados</strong>
-          <small>Histórico centralizado</small>
-        </div>
-
-        <div>
-          <span>02</span>
-          <strong>Controle</strong>
-          <small>Protocolos monitorados</small>
-        </div>
-
-        <div>
-          <span>03</span>
-          <strong>Evolução</strong>
-          <small>Resultados mensuráveis</small>
-        </div>
-      </div>
-    </div>
-
-    <div class="molecule" aria-hidden="true">
-      <span class="ring ring--a"></span>
-      <span class="ring ring--b"></span>
-      <span class="ring ring--c"></span>
-      <span class="ring ring--d"></span>
-      <span class="bond bond--one"></span>
-      <span class="bond bond--two"></span>
-
-      <b>TESTOSTERONE</b>
-      <small>C₁₉H₂₈O₂</small>
-    </div>
-
-    <p class="brand-foot">CIÊNCIA · CONSISTÊNCIA · PERFORMANCE</p>
-  </section>
-
-  <section class="login-panel" aria-labelledby="login-title">
-    <div class="mobile-brand">
-      <span class="brand__mark">A</span>
-      <span>ATLAS <strong>PROTOCOL</strong></span>
-    </div>
-
-    <div class="login-card">
-      <div class="login-card__index" aria-hidden="true">// 01</div>
-
-      <header class="card-header">
-        <p class="eyebrow">ÁREA RESTRITA</p>
-        <h2 id="login-title">Bem-vindo de volta.</h2>
-        <p>Entre com suas credenciais para acessar seu painel.</p>
-      </header>
-
-      <form
-        class="login-form"
-        (ngSubmit)="login()"
-        #loginForm="ngForm"
-      >
-        <div class="form-field">
-          <label for="email">Email corporativo</label>
-
-          <div class="input-shell">
-            <span aria-hidden="true">@</span>
-
+        <form class="login-form" (ngSubmit)="submit()" [attr.aria-busy]="loading">
+          <label class="ds-field" for="login-email">
+            <span class="ds-field__label">E-mail</span>
             <input
-              id="email"
+              class="ds-control login-control"
+              id="login-email"
               type="email"
               name="email"
-              [(ngModel)]="loginData.email"
-              placeholder="voce@empresa.com"
+              [(ngModel)]="email"
+              placeholder="voce@email.com"
               autocomplete="email"
+              maxlength="254"
               required
-              email
             />
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label for="password">Senha</label>
-
-          <div class="input-shell">
-            <span aria-hidden="true">●</span>
-
-            <input
-              id="password"
-              [type]="showPassword ? 'text' : 'password'"
-              name="password"
-              [(ngModel)]="loginData.password"
-              placeholder="Digite sua senha"
-              autocomplete="current-password"
-              required
-              minlength="6"
-            />
-
-            <button
-              class="password-toggle"
-              type="button"
-              (click)="togglePassword()"
-              [attr.aria-label]="
-                showPassword ? 'Ocultar senha' : 'Mostrar senha'
-              "
-            >
-              {{ showPassword ? 'Ocultar' : 'Mostrar' }}
-            </button>
-          </div>
-        </div>
-
-        <div class="form-options">
-          <label class="remember">
-            <input type="checkbox" />
-            <span>Lembrar acesso</span>
           </label>
 
-          <a href="#" class="text-link">Esqueci minha senha</a>
-        </div>
+          <label class="ds-field" for="login-password">
+            <span class="ds-field__label">Senha</span>
+            <span class="ds-input-wrap">
+              <input
+                class="ds-control login-control"
+                id="login-password"
+                [type]="showPassword ? 'text' : 'password'"
+                name="password"
+                [(ngModel)]="password"
+                placeholder="Digite sua senha"
+                autocomplete="current-password"
+                maxlength="72"
+                required
+              />
+              <button
+                type="button"
+                class="ds-input-action"
+                (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? 'Ocultar senha' : 'Mostrar senha'"
+                [attr.aria-pressed]="showPassword"
+              >
+                <app-atlas-icon [name]="showPassword ? 'eye-off' : 'eye'" [size]="18" />
+              </button>
+            </span>
+          </label>
 
-        @if (errorMessage) {
-          <p class="form-error" role="alert">
-            {{ errorMessage }}
-          </p>
-        }
+          <div class="ds-alert ds-alert--danger" role="alert" aria-live="polite" *ngIf="error">
+            <app-atlas-icon name="info" [size]="18" />
+            <span>{{ error }}</span>
+          </div>
 
-        <button
-          type="submit"
-          class="login-button"
-          [disabled]="loginForm.invalid || isLoading"
-        >
-          <span>
-            {{ isLoading ? 'AUTENTICANDO...' : 'ACESSAR PLATAFORMA' }}
-          </span>
+          <button class="ds-button ds-button--primary login-submit" type="submit" [disabled]="loading">
+            <span class="loading-dot" *ngIf="loading" aria-hidden="true"></span>
+            <span>{{ loading ? 'Entrando...' : 'Entrar no Atlas' }}</span>
+            <app-atlas-icon *ngIf="!loading" name="arrow-right" [size]="18" />
+          </button>
+        </form>
 
-          @if (!isLoading) {
-            <b aria-hidden="true">→</b>
-          }
-        </button>
-      </form>
+        <p class="login-switch">Ainda não possui conta? <a routerLink="/register">Criar conta</a></p>
 
-      <footer class="card-footer">
-        <span>Primeiro acesso?</span>
-        <a href="#" class="text-link">Solicitar credenciais</a>
-      </footer>
-    </div>
-
-    <p class="security-note">
-      <span>◆</span>
-      Seus dados são protegidos e criptografados.
-    </p>
-  </section>
-</main>
+        <p class="login-trust">
+          <app-atlas-icon name="shield" [size]="14" />
+          <span>Sua sessão permanece protegida durante o acesso.</span>
+        </p>
+      </section>
+    </main>
+  </div>
+</div>

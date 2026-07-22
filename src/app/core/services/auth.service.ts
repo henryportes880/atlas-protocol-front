@@ -1,43 +1,65 @@
-import { Injectable, inject } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { LoginRequest, LoginResponse } from '../models/login.model';
+import { AuthResponse, AuthUser, LoginRequest, MeResponse, RegisterRequest } from '../models/auth.model';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly http = inject(HttpClient);
+  private readonly tokenKey = 'atlas_token';
+  private readonly userKey = 'atlas_user';
 
-  private http = inject(HttpClient);
+  readonly currentUser = signal<AuthUser | null>(this.readStoredUser());
 
-  login(data: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(
-      `${environment.apiUrl}/auth/login`,
-      data
+  login(payload: LoginRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/login`, payload).pipe(
+      tap((response) => this.persistSession(response.data.token, response.data.user)),
     );
   }
 
-  logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  register(payload: RegisterRequest): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/register`, payload).pipe(
+      tap((response) => this.persistSession(response.data.token, response.data.user)),
+    );
   }
 
-  saveToken(token: string): void {
-    localStorage.setItem('token', token);
-  }
-
-  saveUser(user: unknown): void {
-    localStorage.setItem('user', JSON.stringify(user));
+  me(): Observable<MeResponse> {
+    return this.http.get<MeResponse>(`${environment.apiUrl}/auth/me`).pipe(
+      tap((response) => {
+        this.currentUser.set(response.data.user);
+        localStorage.setItem(this.userKey, JSON.stringify(response.data.user));
+      }),
+    );
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
+    return localStorage.getItem(this.tokenKey);
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    return Boolean(this.getToken());
   }
 
+  logout(): void {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.userKey);
+    this.currentUser.set(null);
+  }
+
+  private persistSession(token: string, user: AuthUser): void {
+    localStorage.setItem(this.tokenKey, token);
+    localStorage.setItem(this.userKey, JSON.stringify(user));
+    this.currentUser.set(user);
+  }
+
+  private readStoredUser(): AuthUser | null {
+    const raw = localStorage.getItem(this.userKey);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as AuthUser;
+    } catch {
+      return null;
+    }
+  }
 }
