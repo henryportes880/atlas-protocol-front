@@ -22,4 +22,23 @@ describe('rotas autenticadas', () => {
       );
     },
   );
+
+  it.each([
+    'links',
+    'protocols',
+    'tracking',
+    'check-ins',
+    'exams',
+    'progress',
+    'timeline',
+    'inventory',
+    'notifications',
+    'admin',
+  ])('define a rota operacional /app/%s', (path) => {
+    const appRoute = routes.find((route) => route.path === 'app');
+    const route = appRoute?.children?.find((child) => child.path === path);
+
+    expect(route?.loadComponent).toBeDefined();
+    expect(route?.data?.['module']).toBeDefined();
+  });
 });

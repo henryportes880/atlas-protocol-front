@@ -9,7 +9,7 @@
   <nav>
     <div class="nav-group">
       <span class="nav-label">Principal</span>
-      @for (item of primaryItems; track item.route) {
+      @for (item of visiblePrimaryItems(); track item.route) {
         <a
           [routerLink]="item.route"
           routerLinkActive="is-active"
@@ -25,22 +25,47 @@
     </div>
 
     <div class="nav-group">
-      <span class="nav-label">Rotina</span>
-      @for (item of routineItems; track item.label) {
-        <button type="button" class="nav-unavailable" disabled>
+      <span class="nav-label">Operação</span>
+      @for (item of visibleRoutineItems(); track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          #routineLink="routerLinkActive"
+          [attr.aria-current]="routineLink.isActive ? 'page' : null"
+          (click)="close()"
+        >
           <app-atlas-icon [name]="item.icon" [size]="19" />
           <span>{{ item.label }}</span>
-          <small>Em breve</small>
-        </button>
+        </a>
       }
     </div>
+
+    @if (visibleAdminItems().length) {
+      <div class="nav-group">
+        <span class="nav-label">Admin</span>
+        @for (item of visibleAdminItems(); track item.route) {
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+            #adminLink="routerLinkActive"
+            [attr.aria-current]="adminLink.isActive ? 'page' : null"
+            (click)="close()"
+          >
+            <app-atlas-icon [name]="item.icon" [size]="19" />
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </div>
+    }
   </nav>
 
   <div class="sidebar-note">
     <span class="note-mark" aria-hidden="true"></span>
     <div>
-      <strong>Ambiente em evolução</strong>
-      <p>Novos módulos seguirão este padrão visual.</p>
+      <strong>Módulos integrados</strong>
+      <p>As telas agora consomem os endpoints versionados do backend.</p>
     </div>
   </div>
 

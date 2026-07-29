@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
 
 import { AuthService } from '../../core/services/auth.service';
@@ -19,7 +19,7 @@ import { AtlasIcon } from '../../shared/ui/atlas-icon/atlas-icon';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [AtlasIcon],
+  imports: [RouterLink, AtlasIcon],
   templateUrl: './header.html',
   styleUrl: './header.scss',
 })
