@@ -56,7 +56,9 @@ nav {
   text-transform: uppercase;
 }
 
-nav a {
+nav a,
+.nav-unavailable {
+  width: 100%;
   min-height: 44px;
   display: flex;
   align-items: center;
@@ -67,12 +69,28 @@ nav a {
   color: var(--color-text-muted);
   font-size: 0.89rem;
   font-weight: 650;
+  text-align: left;
   transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
-nav a app-atlas-icon {
+nav a app-atlas-icon,
+.nav-unavailable app-atlas-icon {
   flex: 0 0 auto;
   color: var(--color-text-subtle);
+}
+
+.nav-unavailable {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.nav-unavailable small {
+  margin-left: auto;
+  color: var(--color-text-subtle);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 nav a:hover {

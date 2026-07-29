@@ -2,6 +2,7 @@ import {
   Component,
   DestroyRef,
   EventEmitter,
+  Input,
   Output,
   computed,
   inject,
@@ -30,6 +31,8 @@ export class Header {
 
   @Output()
   readonly menuToggle = new EventEmitter<void>();
+
+  @Input() navigationOpen = false;
 
   readonly pageTitle = signal('Visão geral');
   readonly pageEyebrow = signal('Painel Atlas');

@@ -36,7 +36,7 @@ export class Register {
       .register({ name: this.name.trim(), email: this.email.trim(), password: this.password })
       .pipe(finalize(() => (this.loading = false)))
       .subscribe({
-        next: () => this.router.navigateByUrl('/app'),
+        next: () => this.router.navigateByUrl('/app/dashboard'),
         error: (err) => {
           this.error = err?.error?.error?.message ?? 'Não foi possível criar sua conta.';
         },

@@ -1,12 +1,32 @@
+import { ApiSuccess } from './api.model';
+
 export type UserRole = 'admin' | 'professional' | 'athlete';
 
-export interface AuthUser {
+interface BaseAuthUser {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
   active: boolean;
 }
+
+export interface AthleteAuthUser extends BaseAuthUser {
+  role: 'athlete';
+}
+
+export interface AdminAuthUser extends BaseAuthUser {
+  role: 'admin';
+}
+
+export interface ProfessionalAuthUser extends BaseAuthUser {
+  role: 'professional';
+  verificationStatus: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+}
+
+export type AuthUser =
+  | AthleteAuthUser
+  | AdminAuthUser
+  | ProfessionalAuthUser;
 
 export interface LoginRequest {
   email: string;
@@ -19,18 +39,11 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface AuthResponse {
-  success: boolean;
-  data: {
+export type AuthResponse = ApiSuccess<{
     user: AuthUser;
     token: string;
-  };
-  message?: string;
-}
+  }>;
 
-export interface MeResponse {
-  success: boolean;
-  data: {
+export type MeResponse = ApiSuccess<{
     user: AuthUser;
-  };
-}
+  }>;

@@ -1,6 +1,13 @@
 <header>
   <div class="header-leading">
-    <button type="button" class="menu-button" (click)="menuToggle.emit()" aria-label="Abrir menu de navegação">
+    <button
+      type="button"
+      class="menu-button"
+      (click)="menuToggle.emit()"
+      aria-label="Abrir menu de navegação"
+      aria-controls="app-sidebar"
+      [attr.aria-expanded]="navigationOpen"
+    >
       <app-atlas-icon name="menu" [size]="21" />
     </button>
 

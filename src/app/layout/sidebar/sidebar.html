@@ -1,4 +1,4 @@
-<aside aria-label="Navegação principal">
+<aside id="app-sidebar" aria-label="Navegação principal">
   <div class="sidebar-header">
     <app-atlas-brand />
     <button type="button" class="close-button" (click)="close()" aria-label="Fechar menu">
@@ -26,17 +26,12 @@
 
     <div class="nav-group">
       <span class="nav-label">Rotina</span>
-      @for (item of routineItems; track item.route) {
-        <a
-          [routerLink]="item.route"
-          routerLinkActive="is-active"
-          #routineLink="routerLinkActive"
-          [attr.aria-current]="routineLink.isActive ? 'page' : null"
-          (click)="close()"
-        >
+      @for (item of routineItems; track item.label) {
+        <button type="button" class="nav-unavailable" disabled>
           <app-atlas-icon [name]="item.icon" [size]="19" />
           <span>{{ item.label }}</span>
-        </a>
+          <small>Em breve</small>
+        </button>
       }
     </div>
   </nav>

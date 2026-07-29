@@ -1,4 +1,6 @@
 <div class="app-shell">
+  <a class="skip-link" href="#main-content">Ir para o conteúdo principal</a>
+
   <app-sidebar
     [open]="mobileNavigationOpen()"
     (navigationClose)="closeNavigation()"
@@ -14,7 +16,10 @@
   ></button>
 
   <section class="workspace">
-    <app-header (menuToggle)="toggleNavigation()" />
+    <app-header
+      [navigationOpen]="mobileNavigationOpen()"
+      (menuToggle)="toggleNavigation()"
+    />
 
     <main class="main-content" id="main-content">
       <div class="page-container">

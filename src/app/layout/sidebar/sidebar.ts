@@ -11,6 +11,11 @@ interface NavigationItem {
   exact?: boolean;
 }
 
+interface UnavailableNavigationItem {
+  label: string;
+  icon: AtlasIconName;
+}
+
 @Component({
   selector: 'app-sidebar',
   standalone: true,
@@ -29,13 +34,13 @@ export class Sidebar {
   @Output() readonly navigationClose = new EventEmitter<void>();
 
   readonly primaryItems: NavigationItem[] = [
-    { label: 'Visão geral', route: '/app', icon: 'home', exact: true },
+    { label: 'Visão geral', route: '/app/dashboard', icon: 'home', exact: true },
   ];
 
-  readonly routineItems: NavigationItem[] = [
-    { label: 'Protocolos', route: '/app/protocols', icon: 'flask' },
-    { label: 'Acompanhamento', route: '/app/tracking', icon: 'activity' },
-    { label: 'Check-ins', route: '/app/check-ins', icon: 'clipboard' },
+  readonly routineItems: UnavailableNavigationItem[] = [
+    { label: 'Protocolos', icon: 'flask' },
+    { label: 'Acompanhamento', icon: 'activity' },
+    { label: 'Check-ins', icon: 'clipboard' },
   ];
 
   readonly userInitials = computed(() => {
@@ -51,8 +56,13 @@ export class Sidebar {
   });
 
   readonly roleLabel = computed(() => {
-    const labels = { athlete: 'Atleta', professional: 'Profissional', admin: 'Administrador' };
-    return labels[this.auth.currentUser()?.role ?? 'athlete'];
+    const labels = {
+      athlete: 'Atleta',
+      professional: 'Profissional',
+      admin: 'Administrador',
+    };
+    const role = this.auth.currentUser()?.role;
+    return role ? labels[role] : 'Usuário';
   });
 
   close(): void {
