@@ -99,6 +99,10 @@ export class Dashboard implements OnInit {
     return name?.split(/\s+/)[0] || 'Atleta';
   });
 
+  readonly hasProfessionalDashboard = computed(
+    () => this.professionalDashboard()?.verificationStatus === 'approved',
+  );
+
   ngOnInit(): void {
     this.loadDashboard();
   }
@@ -145,6 +149,35 @@ export class Dashboard implements OnInit {
     return VERIFICATION_LABELS[status];
   }
 
+  statusLabel(status: string | null): string {
+    if (!status) return 'Sem status';
+    return this.formatCodeLabel(status);
+  }
+
+  professionalStatusDescription(
+    status: ProfessionalVerificationStatus,
+  ): string {
+    if (status === 'pending') {
+      return 'Sua conta foi validada, mas a verificação profissional ainda está em análise. Os dados operacionais serão liberados assim que esse processo for concluído.';
+    }
+
+    if (status === 'rejected') {
+      return 'Seu cadastro profissional foi recusado na verificação atual. Enquanto isso, o painel permanece em modo seguro, sem expor dados de atletas.';
+    }
+
+    return 'Seu perfil está habilitado para visualizar a operação completa do Atlas Protocol.';
+  }
+
+  shortId(value: string | null): string {
+    if (!value) return 'Não informado';
+    if (value.length <= 10) return value;
+    return `${value.slice(0, 6)}…${value.slice(-4)}`;
+  }
+
+  codeLabel(value: string): string {
+    return this.formatCodeLabel(value);
+  }
+
   private formatWith(
     formatter: Intl.DateTimeFormat,
     value: string | null,
@@ -155,6 +188,18 @@ export class Dashboard implements OnInit {
     return Number.isNaN(date.getTime())
       ? 'Data indisponível'
       : formatter.format(date);
+  }
+
+  private formatCodeLabel(value: string): string {
+    const normalized = value
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .toLowerCase();
+
+    if (!normalized) return 'Sem informação';
+
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 
   private resolveErrorMessage(error: unknown): string {

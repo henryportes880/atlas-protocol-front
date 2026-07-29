@@ -251,35 +251,422 @@
       </aside>
     }
   } @else if (professionalDashboard(); as professional) {
-    <section class="role-fallback ds-card" aria-labelledby="professional-title">
-      <span class="state-icon">
-        <app-atlas-icon name="user" [size]="24" />
-      </span>
-      <span class="section-kicker">Área profissional</span>
-      <h1 id="professional-title">Dashboard profissional em preparação</h1>
-      <span
-        class="ds-badge"
-        [class.ds-badge--positive]="professional.verificationStatus === 'approved'"
-        [class.ds-badge--warning]="professional.verificationStatus === 'pending'"
-      >
-        {{ verificationLabel(professional.verificationStatus) }}
-      </span>
-      <p>
-        Sua sessão está validada. A experiência profissional completa será
-        integrada na próxima etapa, sem exibir dados de atleta nesta tela.
-      </p>
+    @if (hasProfessionalDashboard()) {
+      <section class="welcome-card" aria-labelledby="professional-title">
+        <div>
+          <div class="welcome-meta">
+            <span class="section-kicker">Operação profissional</span>
+            <span class="ds-badge ds-badge--positive">
+              <span class="status-dot" aria-hidden="true"></span>
+              {{ verificationLabel(professional.verificationStatus) }}
+            </span>
+          </div>
+          <h1 id="professional-title">Olá, {{ firstName() }}.</h1>
+          <p>
+            Um recorte operacional do seu escopo ativo no Atlas Protocol, com
+            atletas vinculados, pendências de revisão e próximos registros.
+          </p>
+        </div>
+
+        <div class="welcome-mark" aria-hidden="true">
+          <span></span>
+          <app-atlas-icon name="user" [size]="30" />
+        </div>
+      </section>
+
+      <section class="summary-section" aria-labelledby="professional-summary-title">
+        <header class="section-header">
+          <div>
+            <span class="section-kicker">Resumo profissional</span>
+            <h2 id="professional-summary-title">Visão da operação ativa</h2>
+          </div>
+          <p>Somente vínculos ativos e dados permitidos pelo seu perfil aprovado.</p>
+        </header>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <div class="card-topline">
+              <span class="card-icon">
+                <app-atlas-icon name="user" [size]="20" />
+              </span>
+              <span class="ds-badge ds-badge--primary">Ativos</span>
+            </div>
+            <span class="card-label">Atletas vinculados</span>
+            <h3 class="metric-value">{{ professional.athleteCount }}</h3>
+            <p class="metric-support">
+              Atletas distintos com vínculo operacional ativo neste momento.
+            </p>
+          </article>
+
+          <article class="summary-card">
+            <div class="card-topline">
+              <span class="card-icon">
+                <app-atlas-icon name="flask" [size]="20" />
+              </span>
+              <span class="ds-badge ds-badge--positive">Protocolos</span>
+            </div>
+            <span class="card-label">Protocolos ativos</span>
+            <h3 class="metric-value">{{ professional.activeProtocols }}</h3>
+            <p class="metric-support">
+              Protocolos ativos sob sua condução e dentro do escopo de vínculos ativos.
+            </p>
+          </article>
+
+          <article class="summary-card">
+            <div class="card-topline">
+              <span class="card-icon">
+                <app-atlas-icon name="clipboard" [size]="20" />
+              </span>
+              <span
+                class="ds-badge"
+                [class.ds-badge--warning]="professional.pendingCheckIns > 0"
+              >
+                Revisão
+              </span>
+            </div>
+            <span class="card-label">Check-ins pendentes</span>
+            <h3 class="metric-value">{{ professional.pendingCheckIns }}</h3>
+            <p class="metric-support">
+              Check-ins enviados por atletas vinculados e aguardando sua revisão.
+            </p>
+          </article>
+
+          <article class="summary-card">
+            <div class="card-topline">
+              <span class="card-icon">
+                <app-atlas-icon name="calendar" [size]="20" />
+              </span>
+              @if (professional.upcomingTrackings[0]) {
+                <span class="ds-badge ds-badge--primary">Próximo</span>
+              } @else {
+                <span class="ds-badge">Sem agenda</span>
+              }
+            </div>
+            <span class="card-label">Próximo registro</span>
+
+            @if (professional.upcomingTrackings[0]; as nextTracking) {
+              <h3>{{ formatDateTime(nextTracking.scheduledFor) }}</h3>
+              <p class="primary-detail">
+                <app-atlas-icon name="clock" [size]="16" />
+                {{ nextTracking.title }}
+              </p>
+              <p class="secondary-detail">
+                Atleta {{ shortId(nextTracking.athleteId) }}
+                ·
+                {{ trackingTypeLabel(nextTracking.type) }}
+              </p>
+            } @else {
+              <h3>Nenhum tracking futuro</h3>
+              <p class="empty-message">
+                Novos registros agendados aparecerão aqui assim que entrarem no escopo ativo.
+              </p>
+            }
+          </article>
+        </div>
+      </section>
+
+      <section class="activity-panel ds-card" aria-labelledby="professional-trackings-title">
+        <header class="panel-header">
+          <div>
+            <span class="section-kicker">Agenda operacional</span>
+            <h2 id="professional-trackings-title">Próximos acompanhamentos</h2>
+          </div>
+          @if (professional.upcomingTrackings.length) {
+            <span class="section-caption">
+              {{ professional.upcomingTrackings.length }} itens agendados
+            </span>
+          }
+        </header>
+
+        @if (professional.upcomingTrackings.length) {
+          <ol class="activity-list">
+            @for (tracking of professional.upcomingTrackings; track tracking.id) {
+              <li>
+                <span class="activity-marker" aria-hidden="true">
+                  <app-atlas-icon
+                    [name]="tracking.type === 'manual' ? 'activity' : 'calendar'"
+                    [size]="18"
+                  />
+                </span>
+                <div>
+                  <div class="activity-heading">
+                    <strong>{{ tracking.title }}</strong>
+                    <span>{{ trackingTypeLabel(tracking.type) }}</span>
+                  </div>
+                  <p>{{ formatDateTime(tracking.scheduledFor) }}</p>
+                  <p class="activity-footnote">
+                    Atleta {{ shortId(tracking.athleteId) }}
+                    ·
+                    @if (tracking.protocolId) {
+                      Protocolo {{ shortId(tracking.protocolId) }}
+                    } @else {
+                      Sem protocolo vinculado
+                    }
+                  </p>
+                </div>
+              </li>
+            }
+          </ol>
+        } @else {
+          <div class="activity-empty">
+            <span class="state-icon">
+              <app-atlas-icon name="calendar" [size]="23" />
+            </span>
+            <strong>Nenhum acompanhamento futuro</strong>
+            <p>Quando novos trackings forem agendados, eles aparecerão aqui.</p>
+          </div>
+        }
+      </section>
+
+      <section class="activity-panel ds-card" aria-labelledby="professional-activity-title">
+        <header class="panel-header">
+          <div>
+            <span class="section-kicker">Movimento recente</span>
+            <h2 id="professional-activity-title">Atividade sob sua gestão</h2>
+          </div>
+          @if (professional.recentActivity.length) {
+            <span class="section-caption">
+              {{ professional.recentActivity.length }} eventos recentes
+            </span>
+          }
+        </header>
+
+        @if (professional.recentActivity.length) {
+          <ol class="activity-list">
+            @for (activity of professional.recentActivity; track activity.id) {
+              <li>
+                <span class="activity-marker" aria-hidden="true">
+                  <app-atlas-icon
+                    [name]="activity.type === 'protocol' ? 'flask' : activity.type === 'tracking' ? 'activity' : 'clipboard'"
+                    [size]="18"
+                  />
+                </span>
+                <div>
+                  <div class="activity-heading">
+                    <strong>{{ activity.title }}</strong>
+                    <span>{{ activityTypeLabel(activity.type) }}</span>
+                  </div>
+                  <p>{{ formatDateTime(activity.occurredAt) }}</p>
+                  <p class="activity-footnote">
+                    Atleta {{ shortId(activity.athleteId) }}
+                    @if (activity.status) {
+                      <span>· Status: {{ statusLabel(activity.status) }}</span>
+                    }
+                  </p>
+                </div>
+              </li>
+            }
+          </ol>
+        } @else {
+          <div class="activity-empty">
+            <span class="state-icon">
+              <app-atlas-icon name="activity" [size]="23" />
+            </span>
+            <strong>Nenhuma atividade recente</strong>
+            <p>O histórico operacional será listado aqui conforme o backend registrar eventos.</p>
+          </div>
+        }
+      </section>
+    } @else {
+      <section class="status-card ds-card" aria-labelledby="professional-status-title">
+        <span class="state-icon">
+          <app-atlas-icon name="shield" [size]="24" />
+        </span>
+        <span class="section-kicker">Área profissional</span>
+        <h1 id="professional-status-title">Seu acesso operacional ainda está restrito</h1>
+        <span
+          class="ds-badge"
+          [class.ds-badge--positive]="professional.verificationStatus === 'approved'"
+          [class.ds-badge--warning]="professional.verificationStatus === 'pending'"
+        >
+          {{ verificationLabel(professional.verificationStatus) }}
+        </span>
+        <p>{{ professionalStatusDescription(professional.verificationStatus) }}</p>
+
+        <div class="status-grid" aria-label="Resumo neutro">
+          <article class="summary-card summary-card--compact">
+            <span class="card-label">Atletas vinculados</span>
+            <h3 class="metric-value">{{ professional.athleteCount }}</h3>
+          </article>
+          <article class="summary-card summary-card--compact">
+            <span class="card-label">Protocolos ativos</span>
+            <h3 class="metric-value">{{ professional.activeProtocols }}</h3>
+          </article>
+          <article class="summary-card summary-card--compact">
+            <span class="card-label">Check-ins pendentes</span>
+            <h3 class="metric-value">{{ professional.pendingCheckIns }}</h3>
+          </article>
+        </div>
+      </section>
+    }
+  } @else if (adminDashboard(); as admin) {
+    <section class="welcome-card" aria-labelledby="admin-title">
+      <div>
+        <div class="welcome-meta">
+          <span class="section-kicker">Governança do Atlas</span>
+          <span class="ds-badge ds-badge--primary">
+            <span class="status-dot" aria-hidden="true"></span>
+            Supervisão ativa
+          </span>
+        </div>
+        <h1 id="admin-title">Olá, {{ firstName() }}.</h1>
+        <p>
+          Uma leitura administrativa da base atual, com contadores operacionais,
+          pendências de verificação e auditoria reduzida.
+        </p>
+      </div>
+
+      <div class="welcome-mark" aria-hidden="true">
+        <span></span>
+        <app-atlas-icon name="shield" [size]="30" />
+      </div>
     </section>
-  } @else if (adminDashboard()) {
-    <section class="role-fallback ds-card" aria-labelledby="admin-title">
-      <span class="state-icon">
-        <app-atlas-icon name="shield" [size]="24" />
-      </span>
-      <span class="section-kicker">Área administrativa</span>
-      <h1 id="admin-title">Dashboard administrativo em preparação</h1>
-      <p>
-        Sua sessão de administrador está validada. A visão administrativa será
-        implementada em uma etapa própria.
-      </p>
+
+    <section class="summary-section" aria-labelledby="admin-summary-title">
+      <header class="section-header">
+        <div>
+          <span class="section-kicker">Resumo administrativo</span>
+          <h2 id="admin-summary-title">Estado atual da plataforma</h2>
+        </div>
+        <p>Indicadores consolidados conforme o escopo de leitura do backend.</p>
+      </header>
+
+      <div class="summary-grid">
+        <article class="summary-card">
+          <div class="card-topline">
+            <span class="card-icon">
+              <app-atlas-icon name="user" [size]="20" />
+            </span>
+            <span class="ds-badge">Base total</span>
+          </div>
+          <span class="card-label">Usuários cadastrados</span>
+          <h3 class="metric-value">{{ admin.users.total }}</h3>
+          <p class="metric-support">Contagem total de contas disponíveis no Atlas.</p>
+          <dl>
+            <div>
+              <dt>Admins</dt>
+              <dd>{{ admin.users.byRole.admin }}</dd>
+            </div>
+            <div>
+              <dt>Profissionais</dt>
+              <dd>{{ admin.users.byRole.professional }}</dd>
+            </div>
+            <div>
+              <dt>Atletas</dt>
+              <dd>{{ admin.users.byRole.athlete }}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="summary-card">
+          <div class="card-topline">
+            <span class="card-icon">
+              <app-atlas-icon name="check" [size]="20" />
+            </span>
+            <span class="ds-badge ds-badge--positive">Saudável</span>
+          </div>
+          <span class="card-label">Usuários ativos</span>
+          <h3 class="metric-value">{{ admin.users.active }}</h3>
+          <p class="metric-support">
+            Usuários com `active=true` e sem bloqueio registrado.
+          </p>
+        </article>
+
+        <article class="summary-card">
+          <div class="card-topline">
+            <span class="card-icon">
+              <app-atlas-icon name="info" [size]="20" />
+            </span>
+            <span
+              class="ds-badge"
+              [class.ds-badge--warning]="admin.users.blocked > 0"
+            >
+              Atenção
+            </span>
+          </div>
+          <span class="card-label">Usuários bloqueados</span>
+          <h3 class="metric-value">{{ admin.users.blocked }}</h3>
+          <p class="metric-support">
+            Contas com bloqueio ativo, independentemente do status de ativação.
+          </p>
+        </article>
+
+        <article class="summary-card">
+          <div class="card-topline">
+            <span class="card-icon">
+              <app-atlas-icon name="shield" [size]="20" />
+            </span>
+            <span class="ds-badge ds-badge--warning">Fila</span>
+          </div>
+          <span class="card-label">Profissionais pendentes</span>
+          <h3 class="metric-value">{{ admin.professionalsPending }}</h3>
+          <p class="metric-support">
+            Perfis profissionais aguardando conclusão da verificação.
+          </p>
+        </article>
+
+        <article class="summary-card">
+          <div class="card-topline">
+            <span class="card-icon">
+              <app-atlas-icon name="activity" [size]="20" />
+            </span>
+            <span class="ds-badge ds-badge--primary">Relacionamentos</span>
+          </div>
+          <span class="card-label">Vínculos ativos</span>
+          <h3 class="metric-value">{{ admin.activeLinks }}</h3>
+          <p class="metric-support">
+            Relações profissional-atleta atualmente ativas na plataforma.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="activity-panel ds-card" aria-labelledby="audit-title">
+      <header class="panel-header">
+        <div>
+          <span class="section-kicker">Auditoria recente</span>
+          <h2 id="audit-title">Eventos administrativos</h2>
+        </div>
+        @if (admin.recentAudit.length) {
+          <span class="section-caption">
+            {{ admin.recentAudit.length }} registros recentes
+          </span>
+        }
+      </header>
+
+      @if (admin.recentAudit.length) {
+        <ol class="activity-list">
+          @for (audit of admin.recentAudit; track audit.id) {
+            <li>
+              <span class="activity-marker" aria-hidden="true">
+                <app-atlas-icon name="shield" [size]="18" />
+              </span>
+              <div>
+                <div class="activity-heading">
+                  <strong>{{ codeLabel(audit.action) }}</strong>
+                  <span>{{ codeLabel(audit.entityType) }}</span>
+                </div>
+                <p>{{ formatDateTime(audit.createdAt) }}</p>
+                <p class="activity-footnote">
+                  Entidade
+                  {{ audit.entityId ? shortId(audit.entityId) : 'não informada' }}
+                  ·
+                  Ator
+                  {{ audit.actorId ? shortId(audit.actorId) : 'sistema' }}
+                </p>
+              </div>
+            </li>
+          }
+        </ol>
+      } @else {
+        <div class="activity-empty">
+          <span class="state-icon">
+            <app-atlas-icon name="shield" [size]="23" />
+          </span>
+          <strong>Nenhum evento de auditoria recente</strong>
+          <p>Quando o backend registrar novos eventos, eles serão listados aqui.</p>
+        </div>
+      }
     </section>
   }
 </div>

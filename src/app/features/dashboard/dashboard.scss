@@ -149,7 +149,7 @@
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 16px;
 }
 
@@ -205,6 +205,13 @@
   line-height: 1.4;
 }
 
+.summary-card h3.metric-value {
+  margin: 14px 0 10px;
+  font-size: clamp(2.35rem, 4vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
 .summary-card dl {
   display: grid;
   gap: 10px;
@@ -241,6 +248,13 @@
   color: var(--color-text-muted);
   font-size: 0.8rem;
   line-height: 1.65;
+}
+
+.metric-support {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.7;
 }
 
 .primary-detail {
@@ -305,6 +319,10 @@
   margin: 5px 0 0;
   color: var(--color-text-muted);
   font-size: 0.75rem;
+}
+
+.activity-footnote {
+  opacity: 0.9;
 }
 
 .activity-empty {
@@ -410,7 +428,8 @@
 }
 
 .error-state,
-.role-fallback {
+.role-fallback,
+.status-card {
   min-height: min(520px, calc(100dvh - 170px));
   display: flex;
   align-items: center;
@@ -421,19 +440,22 @@
 }
 
 .error-state .section-kicker,
-.role-fallback .section-kicker {
+.role-fallback .section-kicker,
+.status-card .section-kicker {
   margin-top: 18px;
 }
 
 .error-state h1,
-.role-fallback h1 {
+.role-fallback h1,
+.status-card h1 {
   max-width: 720px;
   margin: 8px 0 12px;
   font-size: clamp(2rem, 5vw, 3.7rem);
 }
 
 .error-state p,
-.role-fallback p {
+.role-fallback p,
+.status-card p {
   max-width: 610px;
   margin: 0 0 24px;
   color: var(--color-text-muted);
@@ -444,17 +466,24 @@
   margin-bottom: 18px;
 }
 
+.status-card .ds-badge {
+  margin-bottom: 18px;
+}
+
+.status-grid {
+  width: min(860px, 100%);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.summary-card--compact {
+  min-height: 0;
+  text-align: left;
+}
+
 @media (max-width: 1100px) {
-  .summary-grid,
-  .skeleton-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .summary-card:last-child,
-  .skeleton-card:last-child {
-    grid-column: 1 / -1;
-  }
-
   .welcome-mark {
     right: 28px;
     opacity: 0.7;
@@ -483,11 +512,6 @@
   .summary-grid,
   .skeleton-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .summary-card:last-child,
-  .skeleton-card:last-child {
-    grid-column: auto;
   }
 
   .section-header,

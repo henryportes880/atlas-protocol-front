@@ -3,13 +3,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ApiSuccess } from '../../core/models/api.model';
 import { AuthUser } from '../../core/models/auth.model';
 import {
   AdminDashboardData,
   AthleteDashboardData,
   ProfessionalDashboardData,
 } from '../../core/models/dashboard.model';
-import { ApiSuccess } from '../../core/models/api.model';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { Dashboard } from './dashboard';
@@ -76,6 +76,62 @@ describe('Dashboard', () => {
     inventoryAlerts: [],
   };
 
+  const baseProfessionalDashboard: ProfessionalDashboardData = {
+    role: 'professional',
+    verificationStatus: 'approved',
+    athleteCount: 2,
+    activeProtocols: 1,
+    pendingCheckIns: 1,
+    upcomingTrackings: [
+      {
+        id: 'tracking-prof-1',
+        athleteId: 'athlete-1',
+        protocolId: 'protocol-1',
+        title: 'Acompanhamento semanal',
+        type: 'scheduled',
+        scheduledFor: '2026-08-01T12:00:00.000Z',
+        status: 'scheduled',
+      },
+    ],
+    recentActivity: [
+      {
+        id: 'activity-prof-1',
+        athleteId: 'athlete-1',
+        type: 'tracking',
+        title: 'Check-in revisado',
+        occurredAt: '2026-07-28T12:00:00.000Z',
+        status: 'completed',
+        entityId: 'tracking-prof-1',
+      },
+    ],
+  };
+
+  const baseAdminDashboard: AdminDashboardData = {
+    role: 'admin',
+    users: {
+      total: 8,
+      active: 6,
+      blocked: 1,
+      byRole: {
+        admin: 1,
+        professional: 3,
+        athlete: 4,
+      },
+    },
+    professionalsPending: 2,
+    activeLinks: 5,
+    recentAudit: [
+      {
+        id: 'audit-1',
+        actorId: 'admin-1',
+        action: 'USER_BLOCKED',
+        entityType: 'ProfessionalProfile',
+        entityId: 'professional-9',
+        createdAt: '2026-07-28T14:00:00.000Z',
+      },
+    ],
+  };
+
   beforeEach(() => {
     dashboardService = {
       getDashboard: vi.fn(),
@@ -86,9 +142,11 @@ describe('Dashboard', () => {
   });
 
   async function render(
-    response: Observable<ApiSuccess<
-      AthleteDashboardData | ProfessionalDashboardData | AdminDashboardData
-    >>,
+    response: Observable<
+      ApiSuccess<
+        AthleteDashboardData | ProfessionalDashboardData | AdminDashboardData
+      >
+    >,
   ): Promise<void> {
     dashboardService.getDashboard.mockReturnValue(response);
 
@@ -114,11 +172,33 @@ describe('Dashboard', () => {
     };
   }
 
+  function professionalResponse(
+    data: ProfessionalDashboardData = baseProfessionalDashboard,
+  ): ApiSuccess<ProfessionalDashboardData> {
+    return {
+      success: true,
+      data,
+      message: 'Dashboard carregado com sucesso.',
+    };
+  }
+
+  function adminResponse(
+    data: AdminDashboardData = baseAdminDashboard,
+  ): ApiSuccess<AdminDashboardData> {
+    return {
+      success: true,
+      data,
+      message: 'Dashboard carregado com sucesso.',
+    };
+  }
+
   it('exibe o estado de carregamento enquanto aguarda a API', async () => {
     await render(new Subject<ApiSuccess<AthleteDashboardData>>());
 
     expect(fixture.nativeElement.textContent).toContain('Preparando seu painel');
-    expect(fixture.nativeElement.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[aria-busy="true"]'),
+    ).not.toBeNull();
   });
 
   it('renderiza o dashboard real do atleta e a atividade recente', async () => {
@@ -247,7 +327,7 @@ describe('Dashboard', () => {
     expect(fixture.nativeElement.textContent).toContain('Preparação V1');
   });
 
-  it('usa fallback seguro para profissional sem renderizar dados de atleta', async () => {
+  it('renderiza o dashboard completo do profissional aprovado', async () => {
     authService.currentUser.mockReturnValue({
       id: 'professional-1',
       name: 'Paulo Profissional',
@@ -257,31 +337,59 @@ describe('Dashboard', () => {
       verificationStatus: 'approved',
     });
 
-    await render(
-      of({
-        success: true,
-        data: {
-          role: 'professional',
-          verificationStatus: 'approved',
-          athleteCount: 0,
-          activeProtocols: 0,
-          pendingCheckIns: 0,
-          upcomingTrackings: [],
-          recentActivity: [],
-        },
-        message: 'Dashboard carregado com sucesso.',
-      }),
-    );
+    await render(of(professionalResponse()));
     fixture.detectChanges();
 
     const content = fixture.nativeElement.textContent;
-    expect(content).toContain('Dashboard profissional');
+    expect(content).toContain('Operação profissional');
     expect(content).toContain('Aprovado');
+    expect(content).toContain('Atletas vinculados');
+    expect(content).toContain('Acompanhamento semanal');
+    expect(content).toContain('Atividade sob sua gestão');
     expect(content).not.toContain('Protocolo ativo');
     expect(content).not.toContain('Preparação V1');
   });
 
-  it('usa fallback seguro para admin sem renderizar dados de atleta', async () => {
+  it.each(['pending', 'rejected'] as const)(
+    'mantém modo seguro para profissional %s',
+    async (verificationStatus) => {
+      authService.currentUser.mockReturnValue({
+        id: 'professional-1',
+        name: 'Paulo Profissional',
+        email: 'paulo@example.com',
+        role: 'professional',
+        active: true,
+        verificationStatus,
+      });
+
+      await render(
+        of(
+          professionalResponse({
+            ...baseProfessionalDashboard,
+            verificationStatus,
+            athleteCount: 0,
+            activeProtocols: 0,
+            pendingCheckIns: 0,
+            upcomingTrackings: [],
+            recentActivity: [],
+          }),
+        ),
+      );
+      fixture.detectChanges();
+
+      const content = fixture.nativeElement.textContent;
+      expect(content).toContain('Seu acesso operacional ainda está restrito');
+      expect(content).toContain(
+        verificationStatus === 'pending'
+          ? 'Aguardando aprovação'
+          : 'Cadastro rejeitado',
+      );
+      expect(content).not.toContain('Atividade sob sua gestão');
+      expect(content).not.toContain('Preparação V1');
+    },
+  );
+
+  it('renderiza métricas e auditoria para admin sem dados de atleta', async () => {
     authService.currentUser.mockReturnValue({
       id: 'admin-1',
       name: 'Ada Admin',
@@ -290,32 +398,15 @@ describe('Dashboard', () => {
       active: true,
     });
 
-    await render(
-      of({
-        success: true,
-        data: {
-          role: 'admin',
-          users: {
-            total: 0,
-            active: 0,
-            blocked: 0,
-            byRole: {
-              admin: 0,
-              professional: 0,
-              athlete: 0,
-            },
-          },
-          professionalsPending: 0,
-          activeLinks: 0,
-          recentAudit: [],
-        },
-        message: 'Dashboard carregado com sucesso.',
-      }),
-    );
+    await render(of(adminResponse()));
     fixture.detectChanges();
 
     const content = fixture.nativeElement.textContent;
-    expect(content).toContain('Dashboard administrativo');
+    expect(content).toContain('Usuários cadastrados');
+    expect(content).toContain('Profissionais pendentes');
+    expect(content).toContain('Eventos administrativos');
+    expect(content).toContain('User blocked');
+    expect(content).toContain('Professional profile');
     expect(content).not.toContain('Protocolo ativo');
     expect(content).not.toContain('Preparação V1');
   });
