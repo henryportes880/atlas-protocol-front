@@ -19,8 +19,10 @@ import {
   ProfessionalVerificationStatus,
   TrackingType,
 } from '../../core/models/dashboard.model';
+import { ProfessionalVerification } from '../../core/models/professional-verification.model';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { ProfessionalVerificationService } from '../../core/services/professional-verification.service';
 import { AtlasIcon } from '../../shared/ui/atlas-icon/atlas-icon';
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('pt-BR', {
@@ -73,10 +75,18 @@ const VERIFICATION_LABELS: Record<ProfessionalVerificationStatus, string> = {
 export class Dashboard implements OnInit {
   readonly auth = inject(AuthService);
   private readonly dashboardService = inject(DashboardService);
+  private readonly professionalVerificationService = inject(
+    ProfessionalVerificationService,
+  );
 
   readonly loading = signal(true);
   readonly error = signal('');
   readonly dashboard = signal<DashboardData | null>(null);
+  readonly professionalVerification = signal<ProfessionalVerification | null>(
+    null,
+  );
+  readonly professionalVerificationLoading = signal(false);
+  readonly professionalVerificationError = signal('');
 
   readonly athleteDashboard = computed<AthleteDashboardData | null>(() => {
     const dashboard = this.dashboard();
@@ -117,9 +127,13 @@ export class Dashboard implements OnInit {
       .getDashboard()
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
-        next: (response) => this.dashboard.set(response.data),
+        next: (response) => {
+          this.dashboard.set(response.data);
+          this.loadProfessionalVerification(response.data);
+        },
         error: (error: unknown) => {
           this.dashboard.set(null);
+          this.professionalVerification.set(null);
           this.error.set(this.resolveErrorMessage(error));
         },
       });
@@ -176,6 +190,47 @@ export class Dashboard implements OnInit {
 
   codeLabel(value: string): string {
     return this.formatCodeLabel(value);
+  }
+
+  bytesLabel(value: number | null | undefined): string {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+      return 'Tamanho indisponível';
+    }
+
+    if (value < 1024 * 1024) {
+      return `${Math.max(1, Math.round(value / 1024))} KB`;
+    }
+
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  private loadProfessionalVerification(dashboard: DashboardData): void {
+    if (
+      dashboard.role !== 'professional' ||
+      dashboard.verificationStatus === 'approved'
+    ) {
+      this.professionalVerification.set(null);
+      this.professionalVerificationError.set('');
+      return;
+    }
+
+    this.professionalVerificationLoading.set(true);
+    this.professionalVerificationError.set('');
+
+    this.professionalVerificationService
+      .getOwnVerification()
+      .pipe(finalize(() => this.professionalVerificationLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          this.professionalVerification.set(response.data.verification);
+        },
+        error: (error: unknown) => {
+          this.professionalVerification.set(null);
+          this.professionalVerificationError.set(
+            this.resolveErrorMessage(error),
+          );
+        },
+      });
   }
 
   private formatWith(

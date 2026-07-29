@@ -11,7 +11,16 @@ import {
   throwError,
 } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthResponse, AuthUser, LoginRequest, MeResponse, RegisterRequest } from '../models/auth.model';
+import {
+  AuthResponse,
+  AuthUser,
+  LoginRequest,
+  MeResponse,
+  ProfessionalAuthUser,
+  ProfessionalRegisterResponse,
+  RegisterProfessionalRequest,
+  RegisterRequest,
+} from '../models/auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -33,6 +42,32 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${environment.apiUrl}/auth/register`, payload).pipe(
       tap((response) => this.persistSession(response.data.token, response.data.user)),
     );
+  }
+
+  registerProfessional(
+    payload: RegisterProfessionalRequest,
+  ): Observable<ProfessionalRegisterResponse> {
+    const formData = new FormData();
+    formData.append('name', payload.name);
+    formData.append('email', payload.email);
+    formData.append('password', payload.password);
+    formData.append('document', payload.document, payload.document.name);
+
+    return this.http
+      .post<ProfessionalRegisterResponse>(
+        `${environment.apiUrl}/auth/register-professional`,
+        formData,
+      )
+      .pipe(
+        tap((response) => {
+          const user: ProfessionalAuthUser = {
+            ...response.data.user,
+            verificationStatus: response.data.verification.status,
+          };
+
+          this.persistSession(response.data.token, user);
+        }),
+      );
   }
 
   me(): Observable<MeResponse> {

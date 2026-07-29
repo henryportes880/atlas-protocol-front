@@ -483,6 +483,41 @@
         </span>
         <p>{{ professionalStatusDescription(professional.verificationStatus) }}</p>
 
+        @if (professionalVerificationLoading()) {
+          <div class="verification-details" aria-live="polite">
+            <span class="ds-skeleton verification-skeleton"></span>
+            <span class="ds-skeleton verification-skeleton verification-skeleton--short"></span>
+          </div>
+        } @else if (professionalVerification(); as verification) {
+          <dl class="verification-details">
+            <div>
+              <dt>Enviado em</dt>
+              <dd>{{ formatDateTime(verification.submittedAt) }}</dd>
+            </div>
+            @if (verification.verificationDocument; as document) {
+              <div>
+                <dt>Documento</dt>
+                <dd>{{ document.originalName }}</dd>
+              </div>
+              <div>
+                <dt>Tamanho</dt>
+                <dd>{{ bytesLabel(document.sizeBytes) }}</dd>
+              </div>
+            }
+            @if (verification.rejectionReason) {
+              <div class="verification-details__reason">
+                <dt>Motivo</dt>
+                <dd>{{ verification.rejectionReason }}</dd>
+              </div>
+            }
+          </dl>
+        } @else if (professionalVerificationError()) {
+          <div class="ds-alert ds-alert--warning verification-alert" role="status">
+            <app-atlas-icon name="info" [size]="18" />
+            <span>{{ professionalVerificationError() }}</span>
+          </div>
+        }
+
         <div class="status-grid" aria-label="Resumo neutro">
           <article class="summary-card summary-card--compact">
             <span class="card-label">Atletas vinculados</span>

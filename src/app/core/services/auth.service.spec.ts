@@ -4,7 +4,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { describe, beforeEach, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
@@ -73,11 +73,73 @@ describe('AuthService session hydration', () => {
     http
       .expectOne(`${environment.apiUrl}/auth/me`)
       .flush(
-        { success: false, error: { code: 'INVALID_TOKEN', message: 'Inválido' } },
+        {
+          success: false,
+          error: { code: 'INVALID_TOKEN', message: 'Inválido' },
+        },
         { status: 401, statusText: 'Unauthorized' },
       );
 
     expect(service.getToken()).toBeNull();
     expect(service.currentUser()).toBeNull();
+  });
+
+  it('envia cadastro profissional como multipart e persiste status pendente', () => {
+    const service = TestBed.inject(AuthService);
+    const http = TestBed.inject(HttpTestingController);
+    const document = new File(['%PDF-1.7'], 'comprovante.pdf', {
+      type: 'application/pdf',
+    });
+
+    service
+      .registerProfessional({
+        name: 'Profissional Teste',
+        email: 'pro@example.com',
+        password: 'senha-segura',
+        document,
+      })
+      .subscribe((response) => {
+        expect(response.data.verification.status).toBe('pending');
+      });
+
+    const request = http.expectOne(
+      `${environment.apiUrl}/auth/register-professional`,
+    );
+    const body = request.request.body as FormData;
+
+    expect(request.request.method).toBe('POST');
+    expect(body instanceof FormData).toBe(true);
+    expect(body.get('name')).toBe('Profissional Teste');
+    expect(body.get('email')).toBe('pro@example.com');
+    expect(body.get('password')).toBe('senha-segura');
+    const appendedDocument = body.get('document') as File;
+    expect(appendedDocument.name).toBe('comprovante.pdf');
+    expect(appendedDocument.type).toBe('application/pdf');
+
+    request.flush({
+      success: true,
+      data: {
+        user: {
+          id: 'professional-id',
+          name: 'Profissional Teste',
+          email: 'pro@example.com',
+          role: 'professional',
+          active: true,
+        },
+        verification: {
+          status: 'pending',
+          submittedAt: '2026-07-29T12:00:00.000Z',
+        },
+        token: 'token-profissional',
+      },
+      message: 'Cadastro enviado para análise.',
+    });
+
+    expect(service.getToken()).toBe('token-profissional');
+    expect(service.currentUser()).toMatchObject({
+      id: 'professional-id',
+      role: 'professional',
+      verificationStatus: 'pending',
+    });
   });
 });

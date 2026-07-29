@@ -1,6 +1,7 @@
 import { ApiSuccess } from './api.model';
 
 export type UserRole = 'admin' | 'professional' | 'athlete';
+export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 
 interface BaseAuthUser {
   id: string;
@@ -19,7 +20,7 @@ export interface AdminAuthUser extends BaseAuthUser {
 
 export interface ProfessionalAuthUser extends BaseAuthUser {
   role: 'professional';
-  verificationStatus: 'pending' | 'approved' | 'rejected';
+  verificationStatus: VerificationStatus;
   rejectionReason?: string;
 }
 
@@ -39,8 +40,25 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface RegisterProfessionalRequest extends RegisterRequest {
+  document: File;
+}
+
+export interface RegisterProfessionalUser extends BaseAuthUser {
+  role: 'professional';
+}
+
 export type AuthResponse = ApiSuccess<{
     user: AuthUser;
+    token: string;
+  }>;
+
+export type ProfessionalRegisterResponse = ApiSuccess<{
+    user: RegisterProfessionalUser;
+    verification: {
+      status: VerificationStatus;
+      submittedAt: string;
+    };
     token: string;
   }>;
 

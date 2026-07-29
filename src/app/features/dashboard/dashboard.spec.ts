@@ -12,6 +12,7 @@ import {
 } from '../../core/models/dashboard.model';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { ProfessionalVerificationService } from '../../core/services/professional-verification.service';
 import { Dashboard } from './dashboard';
 
 describe('Dashboard', () => {
@@ -21,6 +22,9 @@ describe('Dashboard', () => {
   };
   let authService: {
     currentUser: ReturnType<typeof vi.fn>;
+  };
+  let professionalVerificationService: {
+    getOwnVerification: ReturnType<typeof vi.fn>;
   };
 
   const athleteUser: AuthUser = {
@@ -139,6 +143,30 @@ describe('Dashboard', () => {
     authService = {
       currentUser: vi.fn(() => athleteUser),
     };
+    professionalVerificationService = {
+      getOwnVerification: vi.fn(() =>
+        of({
+          success: true,
+          data: {
+            verification: {
+              id: 'verification-1',
+              userId: 'professional-1',
+              verificationStatus: 'pending',
+              submittedAt: '2026-07-29T12:00:00.000Z',
+              reviewedAt: null,
+              reviewedBy: null,
+              createdAt: '2026-07-29T12:00:00.000Z',
+              updatedAt: '2026-07-29T12:00:00.000Z',
+              verificationDocument: {
+                originalName: 'comprovante.pdf',
+                mimeType: 'application/pdf',
+                sizeBytes: 512,
+              },
+            },
+          },
+        }),
+      ),
+    };
   });
 
   async function render(
@@ -155,6 +183,10 @@ describe('Dashboard', () => {
       providers: [
         { provide: DashboardService, useValue: dashboardService },
         { provide: AuthService, useValue: authService },
+        {
+          provide: ProfessionalVerificationService,
+          useValue: professionalVerificationService,
+        },
       ],
     }).compileComponents();
 
@@ -310,6 +342,10 @@ describe('Dashboard', () => {
       providers: [
         { provide: DashboardService, useValue: dashboardService },
         { provide: AuthService, useValue: authService },
+        {
+          provide: ProfessionalVerificationService,
+          useValue: professionalVerificationService,
+        },
       ],
     }).compileComponents();
 
@@ -348,6 +384,9 @@ describe('Dashboard', () => {
     expect(content).toContain('Atividade sob sua gestão');
     expect(content).not.toContain('Protocolo ativo');
     expect(content).not.toContain('Preparação V1');
+    expect(
+      professionalVerificationService.getOwnVerification,
+    ).not.toHaveBeenCalled();
   });
 
   it.each(['pending', 'rejected'] as const)(
@@ -361,6 +400,36 @@ describe('Dashboard', () => {
         active: true,
         verificationStatus,
       });
+      professionalVerificationService.getOwnVerification.mockReturnValue(
+        of({
+          success: true,
+          data: {
+            verification: {
+              id: 'verification-1',
+              userId: 'professional-1',
+              verificationStatus,
+              submittedAt: '2026-07-29T12:00:00.000Z',
+              reviewedAt:
+                verificationStatus === 'rejected'
+                  ? '2026-07-30T12:00:00.000Z'
+                  : null,
+              reviewedBy:
+                verificationStatus === 'rejected' ? 'admin-1' : null,
+              createdAt: '2026-07-29T12:00:00.000Z',
+              updatedAt: '2026-07-30T12:00:00.000Z',
+              rejectionReason:
+                verificationStatus === 'rejected'
+                  ? 'Documento insuficiente.'
+                  : undefined,
+              verificationDocument: {
+                originalName: 'comprovante.pdf',
+                mimeType: 'application/pdf',
+                sizeBytes: 512,
+              },
+            },
+          },
+        }),
+      );
 
       await render(
         of(
@@ -384,6 +453,14 @@ describe('Dashboard', () => {
           ? 'Aguardando aprovação'
           : 'Cadastro rejeitado',
       );
+      expect(content).toContain('comprovante.pdf');
+      expect(content).toContain('1 KB');
+      if (verificationStatus === 'rejected') {
+        expect(content).toContain('Documento insuficiente.');
+      }
+      expect(
+        professionalVerificationService.getOwnVerification,
+      ).toHaveBeenCalledTimes(1);
       expect(content).not.toContain('Atividade sob sua gestão');
       expect(content).not.toContain('Preparação V1');
     },
