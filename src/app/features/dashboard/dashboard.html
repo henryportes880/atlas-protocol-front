@@ -503,6 +503,19 @@
                 <dt>Tamanho</dt>
                 <dd>{{ bytesLabel(document.sizeBytes) }}</dd>
               </div>
+              <div>
+                <dt>Acesso</dt>
+                <dd>
+                  <button
+                    class="ds-button ds-button--secondary"
+                    type="button"
+                    [disabled]="professionalDocumentLoading()"
+                    (click)="viewOwnProfessionalDocument()"
+                  >
+                    {{ professionalDocumentLoading() ? 'Abrindo...' : 'Visualizar documento' }}
+                  </button>
+                </dd>
+              </div>
             }
             @if (verification.rejectionReason) {
               <div class="verification-details__reason">

@@ -87,6 +87,7 @@ export class Dashboard implements OnInit {
   );
   readonly professionalVerificationLoading = signal(false);
   readonly professionalVerificationError = signal('');
+  readonly professionalDocumentLoading = signal(false);
 
   readonly athleteDashboard = computed<AthleteDashboardData | null>(() => {
     const dashboard = this.dashboard();
@@ -161,6 +162,40 @@ export class Dashboard implements OnInit {
 
   verificationLabel(status: ProfessionalVerificationStatus): string {
     return VERIFICATION_LABELS[status];
+  }
+
+  viewOwnProfessionalDocument(): void {
+    const verification = this.professionalVerification();
+    const document = verification?.verificationDocument;
+    if (!verification || !document || this.professionalDocumentLoading()) return;
+
+    this.professionalDocumentLoading.set(true);
+    this.professionalVerificationError.set('');
+    this.professionalVerificationService
+      .downloadDocument(verification.id)
+      .pipe(finalize(() => this.professionalDocumentLoading.set(false)))
+      .subscribe({
+        next: (blob) => {
+          const objectUrl = URL.createObjectURL(blob);
+          const openedWindow = window.open(
+            objectUrl,
+            '_blank',
+            'noopener,noreferrer',
+          );
+          if (!openedWindow) {
+            const link = window.document.createElement('a');
+            link.href = objectUrl;
+            link.download = document.originalName;
+            link.click();
+          }
+          window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        },
+        error: (error: unknown) => {
+          this.professionalVerificationError.set(
+            this.resolveErrorMessage(error),
+          );
+        },
+      });
   }
 
   statusLabel(status: string | null): string {
@@ -262,6 +297,9 @@ export class Dashboard implements OnInit {
       const response = error.error as Partial<ApiErrorResponse> | null;
       const message = response?.error?.message;
       if (typeof message === 'string' && message.trim()) return message;
+      if (error.status === 401) return 'Sua sessão expirou. Entre novamente.';
+      if (error.status === 403) return 'Você não possui permissão para acessar este documento.';
+      if (error.status === 404) return 'O documento não foi encontrado.';
     }
 
     return 'Não foi possível carregar seu painel agora. Tente novamente.';

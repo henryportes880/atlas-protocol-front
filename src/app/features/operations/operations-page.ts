@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
+  FormArray,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
@@ -40,6 +41,7 @@ import {
   OperationRecord,
   PageMeta,
   PhysicalProgressRecord,
+  ProtocolItem,
   ProtocolRecord,
   ProtocolStatus,
   ProtocolVersionRecord,
@@ -52,7 +54,10 @@ import {
   SubstanceRecord,
 } from '../../core/models/operations.model';
 import { AuthService } from '../../core/services/auth.service';
-import { OperationsService } from '../../core/services/operations.service';
+import {
+  OperationsService,
+  ProtocolItemPayload,
+} from '../../core/services/operations.service';
 import { AtlasIcon, AtlasIconName } from '../../shared/ui/atlas-icon/atlas-icon';
 
 export type OperationModuleKey =
@@ -81,6 +86,17 @@ interface SelectOption<T extends string = string> {
   value: T;
   label: string;
 }
+
+type ProtocolItemForm = FormGroup<{
+  substanceId: FormControl<string>;
+  instructions: FormControl<string>;
+  frequencyType: FormControl<ProtocolFrequencyType>;
+  weekDays: FormControl<number[]>;
+  time: FormControl<string>;
+  startDate: FormControl<string>;
+  endDate: FormControl<string>;
+  active: FormControl<boolean>;
+}>;
 
 const MODULE_DEFINITIONS: Record<OperationModuleKey, OperationModuleDefinition> = {
   admin: {
@@ -243,6 +259,16 @@ const INVENTORY_MOVEMENT_OPTIONS: SelectOption<InventoryMovementType>[] = [
   { value: 'adjustment', label: 'Ajuste' },
 ];
 
+const WEEK_DAY_OPTIONS = [
+  { value: 1, label: 'Seg' },
+  { value: 2, label: 'Ter' },
+  { value: 3, label: 'Qua' },
+  { value: 4, label: 'Qui' },
+  { value: 5, label: 'Sex' },
+  { value: 6, label: 'Sáb' },
+  { value: 7, label: 'Dom' },
+];
+
 const TRACKING_STATUS_OPTIONS: SelectOption<TrackingRecordStatus>[] = [
   { value: 'completed', label: 'Concluir' },
   { value: 'missed', label: 'Marcar perdido' },
@@ -323,6 +349,9 @@ export class OperationsPage {
   readonly actionLoading = signal(false);
   readonly substanceCreationLoading = signal(false);
   readonly substanceCreationOpen = signal(false);
+  readonly substanceCreationItemIndex = signal<number | null>(null);
+  readonly substanceCreationTarget = signal<'protocol' | 'version'>('protocol');
+  readonly documentLoadingId = signal('');
   readonly error = signal('');
   readonly actionError = signal('');
   readonly successMessage = signal('');
@@ -347,6 +376,13 @@ export class OperationsPage {
   readonly meta = signal<PageMeta | null>(null);
   readonly protocolVersions = signal<ProtocolVersionRecord[]>([]);
   readonly selectedProtocolId = signal('');
+  readonly selectedProtocolVersion = signal<ProtocolVersionRecord | null>(null);
+  readonly editingProtocolId = signal('');
+  readonly availableProtocols = signal<ProtocolRecord[]>([]);
+  readonly selectedTrackingTitle = signal('');
+  readonly selectedCheckInLabel = signal('');
+  readonly selectedInventoryItemName = signal('');
+  readonly selectedVerificationLabel = signal('');
   readonly adminUsers = signal<UserRecord[]>([]);
   readonly adminVerifications = signal<AdminProfessionalVerification[]>([]);
   readonly adminAuditLogs = signal<AuditLogRecord[]>([]);
@@ -373,51 +409,23 @@ export class OperationsPage {
   });
 
   readonly protocolForm = new FormGroup({
-  athleteId: new FormControl('', {
-    nonNullable: true,
-    validators: Validators.required,
-  }),
-
-  substanceId: new FormControl('', {
-    nonNullable: true,
-    validators: Validators.required,
-  }),
-
-  instructions: new FormControl('', {
-    nonNullable: true,
-  }),
-
-  frequencyType: new FormControl<ProtocolFrequencyType>('daily', {
-    nonNullable: true,
-    validators: Validators.required,
-  }),
-
-  time: new FormControl('08:00', {
-    nonNullable: true,
-  }),
-
-  continuous: new FormControl(true, {
-    nonNullable: true,
-  }),
-
-  endDate: new FormControl('', {
-    nonNullable: true,
-  }),
-
-  objective: new FormControl('', {
-    nonNullable: true,
-  }),
-
-  startDate: new FormControl(this.todayInputValue(), {
-    nonNullable: true,
-    validators: Validators.required,
-  }),
-
-  title: new FormControl('', {
-    nonNullable: true,
-    validators: Validators.required,
-  }),
-});
+    athleteId: new FormControl('', {
+      nonNullable: true,
+      validators: Validators.required,
+    }),
+    continuous: new FormControl(true, { nonNullable: true }),
+    endDate: new FormControl('', { nonNullable: true }),
+    objective: new FormControl('', { nonNullable: true }),
+    startDate: new FormControl(this.todayInputValue(), {
+      nonNullable: true,
+      validators: Validators.required,
+    }),
+    title: new FormControl('', {
+      nonNullable: true,
+      validators: Validators.required,
+    }),
+    items: new FormArray<ProtocolItemForm>([this.createProtocolItemForm()]),
+  });
 
   readonly newSubstanceForm = new FormGroup({
     name: new FormControl('', {
@@ -447,10 +455,14 @@ export class OperationsPage {
 
   readonly protocolVersionForm = new FormGroup({
     changeReason: new FormControl('', { nonNullable: true }),
-    continuous: new FormControl(true, { nonNullable: true }),
+    continuous: new FormControl<'keep' | 'true' | 'false'>('keep', {
+      nonNullable: true,
+    }),
     endDate: new FormControl('', { nonNullable: true }),
+    includeItems: new FormControl(false, { nonNullable: true }),
     protocolId: new FormControl('', { nonNullable: true, validators: Validators.required }),
     startDate: new FormControl('', { nonNullable: true }),
+    items: new FormArray<ProtocolItemForm>([]),
   });
 
   readonly trackingForm = new FormGroup({
@@ -592,6 +604,7 @@ export class OperationsPage {
   readonly trackingTypeOptions = TRACKING_TYPE_OPTIONS;
   readonly inventoryUnitOptions = INVENTORY_UNIT_OPTIONS;
   readonly substanceCategoryOptions = SUBSTANCE_CATEGORY_OPTIONS;
+  readonly weekDayOptions = WEEK_DAY_OPTIONS;
   readonly inventoryMovementOptions = INVENTORY_MOVEMENT_OPTIONS;
   readonly trackingStatusOptions = TRACKING_STATUS_OPTIONS;
 readonly activeAthleteLinks = computed(() =>
@@ -599,6 +612,13 @@ readonly activeAthleteLinks = computed(() =>
     (link) => link.status === 'active',
   ),
 );
+  readonly activeProfessionalLinks = computed(() =>
+    this.professionalAthleteLinks().filter(
+      (link) => link.status === 'active' && Boolean(link.professional),
+    ),
+  );
+  readonly protocolItems = this.protocolForm.controls.items;
+  readonly protocolVersionItems = this.protocolVersionForm.controls.items;
   constructor() {
   this.route.queryParamMap
     .pipe(takeUntilDestroyed(this.destroyRef))
@@ -623,14 +643,16 @@ readonly activeAthleteLinks = computed(() =>
       this.protocolVersions.set([]);
       this.selectedProtocolId.set('');
 
-      this.loadProfessionalAthletes();
-      
+      this.loadAccessibleLinks();
 
-if (module === 'protocols') {
-  this.loadSubstances();
-}
+      if (module === 'protocols' || module === 'inventory') {
+        this.loadSubstances();
+      }
+      if (module === 'tracking' || module === 'check-ins') {
+        this.loadAvailableProtocols();
+      }
 
-this.load();
+      this.load();
     });
 }
 
@@ -710,89 +732,123 @@ this.load();
   }
 
   submitProtocol(): void {
-  if (this.protocolForm.invalid) {
-    this.actionError.set(
-      'Informe atleta, título, data inicial e item do protocolo.',
-    );
+    if (this.protocolForm.invalid || !this.validateProtocolItems(this.protocolItems)) {
+      this.actionError.set(
+        'Informe atleta, título, data inicial e ao menos um item válido.',
+      );
+      this.protocolForm.markAllAsTouched();
+      return;
+    }
 
-    this.protocolForm.markAllAsTouched();
-    return;
+    const value = this.protocolForm.getRawValue();
+    const commonPayload = {
+      continuous: value.continuous,
+      endDate: value.continuous ? null : this.toIsoOrNull(value.endDate),
+      objective: this.nullableText(value.objective),
+      startDate: this.toIso(value.startDate),
+      title: value.title.trim(),
+      items: this.protocolItemsPayload(this.protocolItems),
+    };
+    const editingId = this.editingProtocolId();
+
+    this.runAction(
+      editingId
+        ? this.operations.updateProtocol(editingId, commonPayload)
+        : this.operations.createProtocol({
+            athleteId: value.athleteId.trim(),
+            ...commonPayload,
+          }),
+      editingId ? 'Rascunho atualizado.' : 'Protocolo criado em rascunho.',
+      () => this.resetProtocolForm(),
+    );
   }
 
-  const value = this.protocolForm.getRawValue();
+  addProtocolItem(target: 'protocol' | 'version' = 'protocol'): void {
+    this.protocolItemArray(target).push(this.createProtocolItemForm());
+    if (target === 'version') {
+      this.protocolVersionForm.controls.includeItems.setValue(true);
+    }
+  }
 
-  this.runAction(
-    this.operations.createProtocol({
-      athleteId: value.athleteId.trim(),
-      continuous: value.continuous,
+  removeProtocolItem(
+    index: number,
+    target: 'protocol' | 'version' = 'protocol',
+  ): void {
+    const items = this.protocolItemArray(target);
+    if (items.length === 1) {
+      this.actionError.set('O protocolo precisa manter ao menos um item.');
+      return;
+    }
+    items.removeAt(index);
+    if (target === 'version') {
+      this.protocolVersionForm.controls.includeItems.setValue(true);
+    }
+  }
 
-      endDate: value.continuous
-        ? null
-        : this.toIsoOrNull(value.endDate),
+  updateProtocolItemFrequency(
+    index: number,
+    target: 'protocol' | 'version' = 'protocol',
+  ): void {
+    const item = this.protocolItemArray(target).at(index);
+    if (item.controls.frequencyType.value !== 'weekly') {
+      item.controls.weekDays.setValue([]);
+    }
+  }
 
-      objective: this.nullableText(
-        value.objective,
-      ),
+  toggleProtocolWeekDay(
+    index: number,
+    day: number,
+    checked: boolean,
+    target: 'protocol' | 'version' = 'protocol',
+  ): void {
+    const control = this.protocolItemArray(target).at(index).controls.weekDays;
+    const nextDays = checked
+      ? [...new Set([...control.value, day])].sort((left, right) => left - right)
+      : control.value.filter((value) => value !== day);
+    control.setValue(nextDays);
+    if (target === 'version') {
+      this.protocolVersionForm.controls.includeItems.setValue(true);
+    }
+  }
 
-      startDate: this.toIso(
-        value.startDate,
-      ),
+  protocolWeekDaySelected(
+    index: number,
+    day: number,
+    target: 'protocol' | 'version' = 'protocol',
+  ): boolean {
+    return this.protocolItemArray(target).at(index).controls.weekDays.value.includes(day);
+  }
 
-      title: value.title.trim(),
-
-      items: [
-        {
-          substanceId: value.substanceId.trim(),
-
-          instructions: this.nullableText(
-            value.instructions,
-          ),
-
-          frequencyType:
-            value.frequencyType,
-
-          weekDays: [],
-
-          time: this.nullableText(
-            value.time,
-          ),
-
-          startDate: null,
-          endDate: null,
-          active: true,
-        },
-      ],
-    }),
-
-    'Protocolo criado em rascunho.',
-
-    () => {
-      this.protocolForm.patchValue({
-        athleteId: '',
-        substanceId: '',
-        instructions: '',
-        frequencyType: 'daily',
-        time: '08:00',
-        endDate: '',
-        objective: '',
-        title: '',
-      });
-    },
-  );
-}
-
-  toggleSubstanceCreation(): void {
+  toggleSubstanceCreation(
+    itemIndex = 0,
+    target: 'protocol' | 'version' = 'protocol',
+  ): void {
     if (this.substanceCreationLoading()) return;
 
-    if (this.substanceCreationOpen()) {
+    if (
+      this.substanceCreationOpen() &&
+      this.substanceCreationItemIndex() === itemIndex &&
+      this.substanceCreationTarget() === target
+    ) {
       this.resetNewSubstanceForm();
       this.substanceCreationOpen.set(false);
+      this.substanceCreationItemIndex.set(null);
       return;
     }
 
     this.actionError.set('');
     this.successMessage.set('');
+    this.substanceCreationItemIndex.set(itemIndex);
+    this.substanceCreationTarget.set(target);
     this.substanceCreationOpen.set(true);
+  }
+
+  closeSubstanceCreation(): void {
+    if (this.substanceCreationLoading()) return;
+    this.resetNewSubstanceForm();
+    this.substanceCreationOpen.set(false);
+    this.substanceCreationItemIndex.set(null);
+    this.substanceCreationTarget.set('protocol');
   }
 
   submitNewSubstance(): void {
@@ -833,11 +889,22 @@ this.load();
                 }),
               ),
           );
-          this.protocolForm.controls.substanceId.setValue(substance.id);
+          const itemIndex = this.substanceCreationItemIndex();
+          if (itemIndex !== null) {
+            this.protocolItemArray(this.substanceCreationTarget())
+              .at(itemIndex)
+              ?.controls.substanceId.setValue(substance.id);
+            if (this.substanceCreationTarget() === 'version') {
+              this.protocolVersionForm.controls.includeItems.setValue(true);
+            }
+          }
           this.resetNewSubstanceForm();
           this.substanceCreationOpen.set(false);
+          this.substanceCreationItemIndex.set(null);
           this.successMessage.set(
-            'Item criado e selecionado no protocolo.',
+            itemIndex === null
+              ? 'Item criado na biblioteca.'
+              : 'Item criado e selecionado no protocolo.',
           );
         },
         error: (error: unknown) => {
@@ -870,31 +937,175 @@ this.load();
         next: (response) => {
           this.selectedProtocolId.set(protocol.id);
           this.protocolVersions.set(response.data);
-          this.protocolVersionForm.controls.protocolId.setValue(protocol.id);
+          this.selectedProtocolVersion.set(
+            response.data.find((version) => version.version === protocol.currentVersion) ??
+              null,
+          );
           this.successMessage.set('Versões carregadas.');
         },
         error: (error: unknown) => this.actionError.set(this.resolveErrorMessage(error)),
       });
   }
 
+  prepareProtocolVersion(protocol: ProtocolRecord): void {
+    if (!this.canCreateProtocol() || !['active', 'paused'].includes(protocol.status)) {
+      return;
+    }
+
+    this.actionLoading.set(true);
+    this.clearMessages();
+    this.operations
+      .listProtocolVersions(protocol.id)
+      .pipe(finalize(() => this.actionLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          const currentVersion =
+            response.data.find(
+              (version) => version.version === protocol.currentVersion,
+            ) ?? null;
+          if (!currentVersion) {
+            this.actionError.set('A versão atual do protocolo não foi encontrada.');
+            return;
+          }
+
+          this.selectedProtocolId.set(protocol.id);
+          this.selectedProtocolVersion.set(currentVersion);
+          this.protocolVersions.set(response.data);
+          this.protocolVersionForm.patchValue({
+            changeReason: '',
+            continuous: 'keep',
+            endDate: '',
+            includeItems: false,
+            protocolId: protocol.id,
+            startDate: '',
+          });
+          this.replaceProtocolItems(this.protocolVersionItems, currentVersion.items);
+          this.successMessage.set(`Protocolo "${protocol.title}" selecionado.`);
+        },
+        error: (error: unknown) =>
+          this.actionError.set(this.resolveErrorMessage(error)),
+      });
+  }
+
+  editProtocol(protocol: ProtocolRecord): void {
+    if (!this.canCreateProtocol() || protocol.status !== 'draft') return;
+
+    this.actionLoading.set(true);
+    this.clearMessages();
+    this.operations
+      .listProtocolVersions(protocol.id)
+      .pipe(finalize(() => this.actionLoading.set(false)))
+      .subscribe({
+        next: (response) => {
+          const currentVersion =
+            response.data.find(
+              (version) => version.version === protocol.currentVersion,
+            ) ?? null;
+          if (!currentVersion) {
+            this.actionError.set('A versão atual do protocolo não foi encontrada.');
+            return;
+          }
+
+          this.editingProtocolId.set(protocol.id);
+          this.protocolForm.patchValue({
+            athleteId: protocol.athleteId,
+            continuous: protocol.continuous,
+            endDate: this.dateInputValue(protocol.endDate),
+            objective: protocol.objective ?? '',
+            startDate: this.dateInputValue(protocol.startDate),
+            title: protocol.title,
+          });
+          this.replaceProtocolItems(this.protocolItems, currentVersion.items);
+          this.successMessage.set(`Editando o rascunho "${protocol.title}".`);
+        },
+        error: (error: unknown) =>
+          this.actionError.set(this.resolveErrorMessage(error)),
+      });
+  }
+
+  cancelProtocolEdit(): void {
+    this.resetProtocolForm();
+    this.clearMessages();
+  }
+
   submitProtocolVersion(): void {
     if (this.protocolVersionForm.controls.protocolId.invalid) {
-      this.actionError.set('Informe o ID do protocolo para criar a versão.');
+      this.actionError.set('Selecione um protocolo na tabela para criar a versão.');
       return;
     }
 
     const value = this.protocolVersionForm.getRawValue();
-    const payload = {
-      changeReason: this.nullableText(value.changeReason),
-      continuous: value.continuous,
-      endDate: value.continuous ? null : this.toIsoOrNull(value.endDate),
-      startDate: this.toIsoOrUndefined(value.startDate),
-      items: [] as [],
-    };
+    const currentVersion = this.selectedProtocolVersion();
+    if (!currentVersion) {
+      this.actionError.set('Carregue a versão atual pela ação da tabela.');
+      return;
+    }
+    const payload: {
+      changeReason?: string | null;
+      continuous?: boolean;
+      endDate?: string | null;
+      startDate?: string;
+      items?: ProtocolItemPayload[];
+    } = {};
+    const startDate = this.toIsoOrUndefined(value.startDate);
+    const endDate = this.toIsoOrUndefined(value.endDate);
+    if (startDate) payload.startDate = startDate;
+    if (endDate) payload.endDate = endDate;
+    if (value.continuous !== 'keep') {
+      payload.continuous = value.continuous === 'true';
+      if (payload.continuous) payload.endDate = null;
+    }
+    if (
+      payload.startDate !== undefined &&
+      this.sameDateValue(payload.startDate, currentVersion.startDate)
+    ) {
+      delete payload.startDate;
+    }
+    if (
+      payload.endDate !== undefined &&
+      this.sameDateValue(payload.endDate, currentVersion.endDate)
+    ) {
+      delete payload.endDate;
+    }
+    if (
+      payload.continuous !== undefined &&
+      payload.continuous === currentVersion.continuous
+    ) {
+      delete payload.continuous;
+    }
+
+    if (value.includeItems) {
+      if (!this.validateProtocolItems(this.protocolVersionItems)) {
+        this.actionError.set('Revise os itens da nova versão.');
+        return;
+      }
+      const items = this.protocolItemsPayload(this.protocolVersionItems);
+      if (!this.protocolItemsChanged(items, currentVersion.items)) {
+        this.actionError.set('Os itens informados não possuem alteração real.');
+        return;
+      }
+      payload.items = items;
+    }
+
+    if (
+      payload.startDate === undefined &&
+      payload.endDate === undefined &&
+      payload.continuous === undefined &&
+      payload.items === undefined
+    ) {
+      this.actionError.set(
+        'Informe uma alteração de data, continuidade ou itens para criar a versão.',
+      );
+      return;
+    }
+
+    const changeReason = this.nullableText(value.changeReason);
+    if (changeReason) payload.changeReason = changeReason;
 
     this.runAction(
       this.operations.createProtocolVersion(value.protocolId.trim(), payload),
       'Nova versão criada.',
+      () => this.resetProtocolVersionForm(),
     );
   }
 
@@ -919,12 +1130,16 @@ this.load();
     );
   }
 
-  transitionTracking(record?: TrackingRecord): void {
-    if (record) {
-      this.trackingActionForm.controls.id.setValue(record.id);
-    }
+  selectTrackingRecord(record: TrackingRecord): void {
+    this.trackingActionForm.controls.id.setValue(record.id);
+    this.selectedTrackingTitle.set(record.title);
+    this.actionError.set('');
+    this.successMessage.set(`Tracking "${record.title}" selecionado.`);
+  }
+
+  transitionTracking(): void {
     if (this.trackingActionForm.controls.id.invalid) {
-      this.actionError.set('Informe o ID do tracking.');
+      this.actionError.set('Selecione um tracking na tabela.');
       return;
     }
 
@@ -961,6 +1176,13 @@ this.load();
     }
 
     const value = this.checkInForm.getRawValue();
+    if (
+      this.activeProfessionalLinks().length > 1 &&
+      !value.professionalId.trim()
+    ) {
+      this.actionError.set('Selecione o profissional responsável pelo check-in.');
+      return;
+    }
     const responses = this.parseJsonObject(value.responsesJson);
     if (!responses) return;
 
@@ -979,12 +1201,18 @@ this.load();
     this.runAction(this.operations.submitCheckIn(checkIn.id), 'Check-in enviado.');
   }
 
-  reviewCheckIn(record?: CheckInRecord): void {
-    if (record) {
-      this.checkInReviewForm.controls.id.setValue(record.id);
-    }
+  selectCheckInForReview(record: CheckInRecord): void {
+    this.checkInReviewForm.controls.id.setValue(record.id);
+    this.selectedCheckInLabel.set(
+      `${this.athleteNameById(record.athleteId)} · ${this.formatDate(record.referenceWeek)}`,
+    );
+    this.actionError.set('');
+    this.successMessage.set('Check-in selecionado para revisão.');
+  }
+
+  reviewCheckIn(): void {
     if (this.checkInReviewForm.invalid) {
-      this.actionError.set('Informe o ID e o comentário de revisão.');
+      this.actionError.set('Selecione um check-in e informe o comentário de revisão.');
       return;
     }
 
@@ -992,7 +1220,10 @@ this.load();
     this.runAction(
       this.operations.reviewCheckIn(value.id.trim(), value.reviewComment.trim()),
       'Check-in revisado.',
-      () => this.checkInReviewForm.patchValue({ id: '', reviewComment: '' }),
+      () => {
+        this.checkInReviewForm.patchValue({ id: '', reviewComment: '' });
+        this.selectedCheckInLabel.set('');
+      },
     );
   }
 
@@ -1055,6 +1286,15 @@ this.load();
 
   archiveExam(exam: ExamRecord): void {
     this.runAction(this.operations.archiveExam(exam.id), 'Exame arquivado.');
+  }
+
+  viewExamDocument(exam: ExamRecord): void {
+    if (!exam.document || this.documentLoadingId()) return;
+    this.openPrivatePdf(
+      exam.id,
+      this.operations.downloadExamDocument(exam.id),
+      exam.document.originalName,
+    );
   }
 
   submitProgress(): void {
@@ -1123,12 +1363,16 @@ this.load();
     );
   }
 
-  submitInventoryMovement(item?: InventoryItem): void {
-    if (item) {
-      this.inventoryMovementForm.controls.itemId.setValue(item.id);
-    }
+  selectInventoryItem(item: InventoryItem): void {
+    this.inventoryMovementForm.controls.itemId.setValue(item.id);
+    this.selectedInventoryItemName.set(item.name);
+    this.actionError.set('');
+    this.successMessage.set(`Item "${item.name}" selecionado para movimentação.`);
+  }
+
+  submitInventoryMovement(): void {
     if (this.inventoryMovementForm.invalid) {
-      this.actionError.set('Informe item, quantidade e motivo.');
+      this.actionError.set('Selecione um item e informe quantidade e motivo.');
       return;
     }
 
@@ -1140,7 +1384,10 @@ this.load();
         type: value.type,
       }),
       'Movimentação registrada.',
-      () => this.inventoryMovementForm.patchValue({ itemId: '', quantity: '1', reason: '' }),
+      () => {
+        this.inventoryMovementForm.patchValue({ itemId: '', quantity: '1', reason: '' });
+        this.selectedInventoryItemName.set('');
+      },
     );
   }
 
@@ -1188,6 +1435,9 @@ this.load();
 
   selectVerificationForRejection(verification: AdminProfessionalVerification): void {
     this.adminRejectForm.controls.verificationId.setValue(verification.id);
+    this.selectedVerificationLabel.set(
+      verification.user?.name || this.shortId(verification.userId),
+    );
   }
 
   rejectVerification(): void {
@@ -1203,7 +1453,21 @@ this.load();
         value.reason.trim(),
       ),
       'Profissional rejeitado.',
-      () => this.adminRejectForm.reset({ reason: '', verificationId: '' }),
+      () => {
+        this.adminRejectForm.reset({ reason: '', verificationId: '' });
+        this.selectedVerificationLabel.set('');
+      },
+    );
+  }
+
+  viewProfessionalDocument(
+    verification: AdminProfessionalVerification,
+  ): void {
+    if (!verification.verificationDocument || this.documentLoadingId()) return;
+    this.openPrivatePdf(
+      verification.id,
+      this.operations.downloadProfessionalVerificationDocument(verification.id),
+      verification.verificationDocument.originalName,
     );
   }
 
@@ -1217,8 +1481,11 @@ this.load();
   }
 
   canCreateAthleteRecord(): boolean {
-    const role = this.currentRole();
-    return role === 'athlete' || role === 'professional';
+    const user = this.auth.currentUser();
+    return (
+      user?.role === 'athlete' ||
+      (user?.role === 'professional' && user.verificationStatus === 'approved')
+    );
   }
 
   canCreateAthleteOnly(): boolean {
@@ -1227,6 +1494,19 @@ this.load();
 
   canAdmin(): boolean {
     return this.currentRole() === 'admin';
+  }
+
+  canReviewCheckIns(): boolean {
+    const user = this.auth.currentUser();
+    return user?.role === 'professional' && user.verificationStatus === 'approved';
+  }
+
+  canMutateProtocols(): boolean {
+    return this.canCreateProtocol();
+  }
+
+  canMutateTracking(): boolean {
+    return this.canCreateAthleteRecord();
   }
 
   formatDate(value: string | null): string {
@@ -1321,6 +1601,82 @@ athleteLabel(link: LinkRecord): string {
 
 athleteEmail(link: LinkRecord): string {
   return link.athlete?.email || '';
+}
+
+professionalLabel(link: LinkRecord): string {
+  return (
+    link.professional?.name ||
+    `Profissional ${this.shortId(link.professionalId)}`
+  );
+}
+
+professionalEmail(link: LinkRecord): string {
+  return link.professional?.email || '';
+}
+
+linkCounterpartLabel(link: LinkRecord): string {
+  if (this.currentRole() === 'athlete') return this.professionalLabel(link);
+  if (this.currentRole() === 'admin') {
+    return `${this.professionalLabel(link)} ↔ ${this.athleteLabel(link)}`;
+  }
+  return this.athleteLabel(link);
+}
+
+linkCounterpartEmail(link: LinkRecord): string {
+  if (this.currentRole() === 'athlete') return this.professionalEmail(link);
+  if (this.currentRole() === 'admin') {
+    return [this.professionalEmail(link), this.athleteEmail(link)]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  return this.athleteEmail(link);
+}
+
+protocolsForAthlete(athleteId: string): ProtocolRecord[] {
+  const resolvedAthleteId =
+    athleteId ||
+    (this.currentRole() === 'athlete' ? this.auth.currentUser()?.id ?? '' : '');
+  if (!resolvedAthleteId) return [];
+  return this.availableProtocols().filter(
+    (protocol) => protocol.athleteId === resolvedAthleteId,
+  );
+}
+
+checkInProtocols(): ProtocolRecord[] {
+  const professionalId = this.checkInForm.controls.professionalId.value;
+  return this.availableProtocols().filter(
+    (protocol) =>
+      protocol.status === 'active' &&
+      (!professionalId || protocol.professionalId === professionalId),
+  );
+}
+
+protocolTitleById(protocolId: string | null): string {
+  if (!protocolId) return 'Sem protocolo';
+  return (
+    [...this.availableProtocols(), ...this.protocols()].find(
+      (protocol) => protocol.id === protocolId,
+    )?.title ?? `Protocolo ${this.shortId(protocolId)}`
+  );
+}
+
+substanceNameById(substanceId: string | null): string {
+  if (!substanceId) return 'Sem substância vinculada';
+  return (
+    this.substances().find((substance) => substance.id === substanceId)?.name ??
+    `Item ${this.shortId(substanceId)}`
+  );
+}
+
+onTrackingAthleteChange(): void {
+  this.trackingForm.controls.protocolId.setValue('');
+}
+
+onCheckInProfessionalChange(): void {
+  const protocols = this.checkInProtocols();
+  this.checkInForm.controls.protocolId.setValue(
+    protocols.length === 1 ? protocols[0].id : '',
+  );
 }
 
 selectAthlete(link: LinkRecord): void {
@@ -1426,21 +1782,16 @@ private loadSubstances(): void {
         this.substances.set(response.data);
       },
 
-      error: () => {
+      error: (error: unknown) => {
         this.substances.set([]);
-        this.actionError.set(
-          'Não foi possível carregar os itens disponíveis.',
-        );
+        this.actionError.set(this.resolveErrorMessage(error));
       },
     });
 }
-private loadProfessionalAthletes(): void {
+private loadAccessibleLinks(): void {
   const user = this.auth.currentUser();
 
-  if (
-    user?.role !== 'professional' ||
-    user.verificationStatus !== 'approved'
-  ) {
+  if (!user || user.role === 'admin' || this.professionalIsPending()) {
     this.professionalAthleteLinks.set([]);
     return;
   }
@@ -1456,12 +1807,42 @@ private loadProfessionalAthletes(): void {
     )
     .subscribe({
       next: (response) => {
-        this.professionalAthleteLinks.set(
-          response.data,
-        );
+        this.professionalAthleteLinks.set(response.data);
+        if (user.role === 'athlete') {
+          const links = response.data.filter((link) => link.status === 'active');
+          if (links.length === 1) {
+            this.checkInForm.controls.professionalId.setValue(
+              links[0].professionalId,
+            );
+            this.onCheckInProfessionalChange();
+          }
+        }
       },
-      error: () => {
+      error: (error: unknown) => {
         this.professionalAthleteLinks.set([]);
+        this.actionError.set(this.resolveErrorMessage(error));
+      },
+    });
+}
+
+private loadAvailableProtocols(): void {
+  const user = this.auth.currentUser();
+  if (!user || user.role === 'admin' || this.professionalIsPending()) {
+    this.availableProtocols.set([]);
+    return;
+  }
+
+  this.operations
+    .listProtocols({ limit: 100, sortBy: 'createdAt', sortOrder: 'desc' })
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: (response) => {
+        this.availableProtocols.set(response.data);
+        if (user.role === 'athlete') this.onCheckInProfessionalChange();
+      },
+      error: (error: unknown) => {
+        this.availableProtocols.set([]);
+        this.actionError.set(this.resolveErrorMessage(error));
       },
     });
 }
@@ -1540,11 +1921,17 @@ private loadProfessionalAthletes(): void {
     successMessage: string,
     afterSuccess?: () => void,
   ): void {
+    if (this.actionLoading()) return;
     this.actionLoading.set(true);
     this.actionError.set('');
     this.successMessage.set('');
 
-    request.pipe(finalize(() => this.actionLoading.set(false))).subscribe({
+    request
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.actionLoading.set(false)),
+      )
+      .subscribe({
       next: () => {
         afterSuccess?.();
         this.successMessage.set(successMessage);
@@ -1663,6 +2050,196 @@ private loadProfessionalAthletes(): void {
     return cleanValue ? cleanValue : null;
   }
 
+  private createProtocolItemForm(
+    item: Partial<ProtocolItemPayload> = {},
+  ): ProtocolItemForm {
+    return new FormGroup({
+      substanceId: new FormControl(item.substanceId ?? '', {
+        nonNullable: true,
+        validators: Validators.required,
+      }),
+      instructions: new FormControl(item.instructions ?? '', {
+        nonNullable: true,
+      }),
+      frequencyType: new FormControl<ProtocolFrequencyType>(
+        item.frequencyType ?? 'daily',
+        { nonNullable: true, validators: Validators.required },
+      ),
+      weekDays: new FormControl<number[]>(item.weekDays ?? [], {
+        nonNullable: true,
+      }),
+      time: new FormControl(item.time ?? '08:00', { nonNullable: true }),
+      startDate: new FormControl(
+        this.dateInputValue(item.startDate ?? null),
+        { nonNullable: true },
+      ),
+      endDate: new FormControl(this.dateInputValue(item.endDate ?? null), {
+        nonNullable: true,
+      }),
+      active: new FormControl(item.active ?? true, { nonNullable: true }),
+      });
+  }
+
+  private protocolItemArray(
+    target: 'protocol' | 'version',
+  ): FormArray<ProtocolItemForm> {
+    return target === 'version' ? this.protocolVersionItems : this.protocolItems;
+  }
+
+  private protocolItemsPayload(
+    items: FormArray<ProtocolItemForm>,
+  ): ProtocolItemPayload[] {
+    return items.controls.map((item) => {
+      const value = item.getRawValue();
+      return {
+        substanceId: value.substanceId.trim(),
+        instructions: this.nullableText(value.instructions),
+        frequencyType: value.frequencyType,
+        weekDays: value.frequencyType === 'weekly' ? value.weekDays : [],
+        time: this.nullableText(value.time),
+        startDate: this.toIsoOrNull(value.startDate),
+        endDate: this.toIsoOrNull(value.endDate),
+        active: value.active,
+      };
+    });
+  }
+
+  private validateProtocolItems(items: FormArray<ProtocolItemForm>): boolean {
+    if (!items.length) {
+      this.actionError.set('O protocolo precisa ter ao menos um item.');
+      return false;
+    }
+
+    for (const item of items.controls) {
+      const value = item.getRawValue();
+      if (!value.substanceId.trim()) return false;
+      if (
+        value.frequencyType === 'weekly' &&
+        (!value.weekDays.length ||
+          value.weekDays.some((day) => !Number.isInteger(day) || day < 1 || day > 7))
+      ) {
+        this.actionError.set(
+          'Selecione ao menos um dia válido para cada item semanal.',
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private replaceProtocolItems(
+    target: FormArray<ProtocolItemForm>,
+    items: ProtocolItem[],
+  ): void {
+    target.clear();
+    for (const item of items) {
+      target.push(this.createProtocolItemForm(item));
+    }
+    if (!target.length) target.push(this.createProtocolItemForm());
+  }
+
+  private protocolItemsChanged(
+    nextItems: ProtocolItemPayload[],
+    currentItems: ProtocolItem[],
+  ): boolean {
+    const normalize = (
+      item: ProtocolItemPayload | ProtocolItem,
+    ): ProtocolItemPayload => ({
+      substanceId: item.substanceId,
+      instructions: item.instructions || null,
+      frequencyType: item.frequencyType,
+      weekDays: [...item.weekDays].sort((left, right) => left - right),
+      time: item.time || null,
+      startDate: item.startDate ? new Date(item.startDate).toISOString() : null,
+      endDate: item.endDate ? new Date(item.endDate).toISOString() : null,
+      active: item.active,
+    });
+    return (
+      JSON.stringify(nextItems.map(normalize)) !==
+      JSON.stringify(currentItems.map(normalize))
+    );
+  }
+
+  private resetProtocolForm(): void {
+    this.editingProtocolId.set('');
+    this.protocolForm.reset({
+      athleteId: '',
+      continuous: true,
+      endDate: '',
+      objective: '',
+      startDate: this.todayInputValue(),
+      title: '',
+    });
+    this.protocolItems.clear();
+    this.protocolItems.push(this.createProtocolItemForm());
+  }
+
+  private resetProtocolVersionForm(): void {
+    this.protocolVersionForm.reset({
+      changeReason: '',
+      continuous: 'keep',
+      endDate: '',
+      includeItems: false,
+      protocolId: '',
+      startDate: '',
+    });
+    this.protocolVersionItems.clear();
+    this.selectedProtocolVersion.set(null);
+    this.selectedProtocolId.set('');
+  }
+
+  private dateInputValue(value: string | null): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+  }
+
+  private sameDateValue(
+    left: string | null | undefined,
+    right: string | null | undefined,
+  ): boolean {
+    if (!left && !right) return true;
+    if (!left || !right) return false;
+    const leftDate = new Date(left);
+    const rightDate = new Date(right);
+    if (
+      Number.isNaN(leftDate.getTime()) ||
+      Number.isNaN(rightDate.getTime())
+    ) {
+      return left === right;
+    }
+    return leftDate.getTime() === rightDate.getTime();
+  }
+
+  private openPrivatePdf(
+    entityId: string,
+    request: Observable<Blob>,
+    fileName: string,
+  ): void {
+    this.documentLoadingId.set(entityId);
+    this.actionError.set('');
+    request
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.documentLoadingId.set('')),
+      )
+      .subscribe({
+        next: (document) => {
+          const objectUrl = URL.createObjectURL(document);
+          const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+          if (!openedWindow) {
+            const link = window.document.createElement('a');
+            link.href = objectUrl;
+            link.download = fileName;
+            link.click();
+          }
+          window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        },
+        error: (error: unknown) =>
+          this.actionError.set(this.resolveErrorMessage(error)),
+      });
+  }
+
   private resetNewSubstanceForm(): void {
     this.newSubstanceForm.reset({
       name: '',
@@ -1709,7 +2286,26 @@ private loadProfessionalAthletes(): void {
     if (error instanceof HttpErrorResponse) {
       const response = error.error as Partial<ApiErrorResponse> | null;
       const message = response?.error?.message;
-      if (typeof message === 'string' && message.trim()) return message;
+      const fields = response?.error?.fields;
+      const fieldMessages = Array.isArray(fields)
+        ? fields
+            .map((field) => {
+              if (!field || typeof field !== 'object') return '';
+              const detail = field as Record<string, unknown>;
+              return typeof detail['message'] === 'string'
+                ? detail['message'].trim()
+                : '';
+            })
+            .filter(Boolean)
+        : [];
+      if (typeof message === 'string' && message.trim()) {
+        return fieldMessages.length
+          ? `${message.trim()} ${fieldMessages.join(' ')}`
+          : message.trim();
+      }
+      if (error.status === 401) return 'Sua sessão expirou. Entre novamente.';
+      if (error.status === 403) return 'Você não possui permissão para esta ação.';
+      if (error.status === 404) return 'O arquivo ou registro não foi encontrado.';
     }
 
     return 'Não foi possível concluir a operação agora. Tente novamente.';

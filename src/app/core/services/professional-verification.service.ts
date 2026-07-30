@@ -13,4 +13,11 @@ export class ProfessionalVerificationService {
       `${environment.apiUrl}/professional-verifications/me`,
     );
   }
+
+  downloadDocument(id: string): Observable<Blob> {
+    return this.http.get(
+      `${environment.apiUrl}/professional-verifications/${id}/document`,
+      { responseType: 'blob' },
+    );
+  }
 }

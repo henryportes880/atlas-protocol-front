@@ -41,4 +41,13 @@ describe('rotas autenticadas', () => {
     expect(route?.loadComponent).toBeDefined();
     expect(route?.data?.['module']).toBeDefined();
   });
+
+  it('restringe /app/admin com guard específico', () => {
+    const appRoute = routes.find((route) => route.path === 'app');
+    const adminRoute = appRoute?.children?.find(
+      (route) => route.path === 'admin',
+    );
+
+    expect(adminRoute?.canActivate?.length).toBe(1);
+  });
 });

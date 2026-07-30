@@ -24,6 +24,7 @@ describe('Dashboard', () => {
     currentUser: ReturnType<typeof vi.fn>;
   };
   let professionalVerificationService: {
+    downloadDocument: ReturnType<typeof vi.fn>;
     getOwnVerification: ReturnType<typeof vi.fn>;
   };
 
@@ -144,6 +145,9 @@ describe('Dashboard', () => {
       currentUser: vi.fn(() => athleteUser),
     };
     professionalVerificationService = {
+      downloadDocument: vi.fn(() =>
+        of(new Blob(['pdf'], { type: 'application/pdf' })),
+      ),
       getOwnVerification: vi.fn(() =>
         of({
           success: true,
@@ -454,6 +458,7 @@ describe('Dashboard', () => {
           : 'Cadastro rejeitado',
       );
       expect(content).toContain('comprovante.pdf');
+      expect(content).toContain('Visualizar documento');
       expect(content).toContain('1 KB');
       if (verificationStatus === 'rejected') {
         expect(content).toContain('Documento insuficiente.');

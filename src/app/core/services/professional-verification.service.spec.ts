@@ -54,4 +54,28 @@ describe('ProfessionalVerificationService', () => {
     });
     http.verify();
   });
+
+  it('baixa o documento próprio como PDF autenticado', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        ProfessionalVerificationService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
+    });
+    const service = TestBed.inject(ProfessionalVerificationService);
+    const http = TestBed.inject(HttpTestingController);
+
+    service.downloadDocument('verification-1').subscribe((document) => {
+      expect(document.type).toBe('application/pdf');
+    });
+
+    const request = http.expectOne(
+      `${environment.apiUrl}/professional-verifications/verification-1/document`,
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['pdf'], { type: 'application/pdf' }));
+    http.verify();
+  });
 });

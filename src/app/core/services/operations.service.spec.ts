@@ -98,6 +98,80 @@ describe('OperationsService', () => {
     http.verify();
   });
 
+  it('atualiza rascunho e cria versão sem enviar items quando não alterados', () => {
+    const { http, service } = setup();
+    const draftPayload = {
+      title: 'Protocolo ajustado',
+      objective: null,
+      startDate: '2026-08-01T00:00:00.000Z',
+      endDate: null,
+      continuous: true,
+      items: [
+        {
+          substanceId: 'substance-1',
+          instructions: null,
+          frequencyType: 'daily' as const,
+          weekDays: [],
+          time: '08:00',
+          startDate: null,
+          endDate: null,
+          active: true,
+        },
+      ],
+    };
+
+    service.updateProtocol('protocol-1', draftPayload).subscribe();
+    const updateRequest = http.expectOne(
+      `${environment.apiUrl}/protocols/protocol-1`,
+    );
+    expect(updateRequest.request.method).toBe('PATCH');
+    expect(updateRequest.request.body).toEqual(draftPayload);
+    updateRequest.flush({ success: true, data: {} });
+
+    service
+      .createProtocolVersion('protocol-1', {
+        startDate: '2026-08-02T00:00:00.000Z',
+      })
+      .subscribe();
+    const versionRequest = http.expectOne(
+      `${environment.apiUrl}/protocols/protocol-1/versions`,
+    );
+    expect(versionRequest.request.method).toBe('POST');
+    expect(versionRequest.request.body).toEqual({
+      startDate: '2026-08-02T00:00:00.000Z',
+    });
+    expect(versionRequest.request.body).not.toHaveProperty('items');
+    versionRequest.flush({ success: true, data: {} });
+    http.verify();
+  });
+
+  it('baixa PDFs privados como blob sem token na URL', () => {
+    const { http, service } = setup();
+
+    service.downloadExamDocument('exam-1').subscribe((document) => {
+      expect(document.type).toBe('application/pdf');
+    });
+    const examRequest = http.expectOne(
+      `${environment.apiUrl}/exams/exam-1/document`,
+    );
+    expect(examRequest.request.method).toBe('GET');
+    expect(examRequest.request.responseType).toBe('blob');
+    examRequest.flush(new Blob(['pdf'], { type: 'application/pdf' }));
+
+    service
+      .downloadProfessionalVerificationDocument('verification-1')
+      .subscribe();
+    const verificationRequest = http.expectOne(
+      `${environment.apiUrl}/professional-verifications/verification-1/document`,
+    );
+    expect(verificationRequest.request.method).toBe('GET');
+    expect(verificationRequest.request.responseType).toBe('blob');
+    verificationRequest.flush(
+      new Blob(['pdf'], { type: 'application/pdf' }),
+    );
+    http.verify();
+  });
+
   it('envia exame como multipart com results e PDF opcional', () => {
     const { http, service } = setup();
     const document = new File(['%PDF-1.4'], 'exame.pdf', {

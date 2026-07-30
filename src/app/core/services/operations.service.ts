@@ -53,6 +53,23 @@ export interface CreateProtocolPayload {
   items: ProtocolItemPayload[];
 }
 
+export interface UpdateProtocolPayload {
+  title: string;
+  objective: string | null;
+  startDate: string;
+  endDate: string | null;
+  continuous: boolean;
+  items: ProtocolItemPayload[];
+}
+
+export interface CreateProtocolVersionPayload {
+  changeReason?: string | null;
+  continuous?: boolean;
+  endDate?: string | null;
+  startDate?: string;
+  items?: ProtocolItemPayload[];
+}
+
 export interface CreateSubstancePayload {
   name: string;
   description: string | null;
@@ -179,6 +196,16 @@ export class OperationsService {
     );
   }
 
+  updateProtocol(
+    protocolId: string,
+    payload: UpdateProtocolPayload,
+  ): Observable<ApiSuccess<ProtocolMutationResult>> {
+    return this.http.patch<ApiSuccess<ProtocolMutationResult>>(
+      `${this.apiUrl}/protocols/${protocolId}`,
+      payload,
+    );
+  }
+
   updateProtocolStatus(
     id: string,
     status: ProtocolStatus,
@@ -200,10 +227,7 @@ export class OperationsService {
 
   createProtocolVersion(
     protocolId: string,
-    payload: Partial<Pick<CreateProtocolPayload, 'continuous' | 'endDate' | 'startDate'>> & {
-      changeReason?: string | null;
-      items?: ProtocolItemPayload[];
-    },
+    payload: CreateProtocolVersionPayload,
   ): Observable<ApiSuccess<ProtocolMutationResult>> {
     return this.http.post<ApiSuccess<ProtocolMutationResult>>(
       `${this.apiUrl}/protocols/${protocolId}/versions`,
@@ -306,6 +330,12 @@ export class OperationsService {
       `${this.apiUrl}/exams/${id}/archive`,
       {},
     );
+  }
+
+  downloadExamDocument(id: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/exams/${id}/document`, {
+      responseType: 'blob',
+    });
   }
 
   listPhysicalProgress(
@@ -451,6 +481,13 @@ export class OperationsService {
     return this.http.patch<
       ApiSuccess<{ verification: AdminProfessionalVerification }>
     >(`${this.apiUrl}/professional-verifications/${id}/reject`, { reason });
+  }
+
+  downloadProfessionalVerificationDocument(id: string): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/professional-verifications/${id}/document`,
+      { responseType: 'blob' },
+    );
   }
 
   listAuditLogs(
