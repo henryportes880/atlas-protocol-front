@@ -47,6 +47,8 @@ import {
   TrackingRecordStatus,
   TrackingRecordType,
   UserRecord,
+  ProtocolFrequencyType,
+SubstanceRecord,
 } from '../../core/models/operations.model';
 import { AuthService } from '../../core/services/auth.service';
 import { OperationsService } from '../../core/services/operations.service';
@@ -315,7 +317,21 @@ export class OperationsPage {
   readonly records = signal<OperationRecord[]>([]);
   readonly professionalAthleteLinks =
   signal<LinkRecord[]>([]);
-  
+  readonly protocolFrequencyOptions: SelectOption<ProtocolFrequencyType>[] = [
+  {
+    value: 'daily',
+    label: 'Diária',
+  },
+  {
+    value: 'weekly',
+    label: 'Semanal',
+  },
+  {
+    value: 'custom',
+    label: 'Personalizada',
+  },
+];
+  readonly substances = signal<SubstanceRecord[]>([]);
   readonly meta = signal<PageMeta | null>(null);
   readonly protocolVersions = signal<ProtocolVersionRecord[]>([]);
   readonly selectedProtocolId = signal('');
@@ -345,16 +361,51 @@ export class OperationsPage {
   });
 
   readonly protocolForm = new FormGroup({
-    athleteId: new FormControl('', { nonNullable: true, validators: Validators.required }),
-    continuous: new FormControl(true, { nonNullable: true }),
-    endDate: new FormControl('', { nonNullable: true }),
-    objective: new FormControl('', { nonNullable: true }),
-    startDate: new FormControl(this.todayInputValue(), {
-      nonNullable: true,
-      validators: Validators.required,
-    }),
-    title: new FormControl('', { nonNullable: true, validators: Validators.required }),
-  });
+  athleteId: new FormControl('', {
+    nonNullable: true,
+    validators: Validators.required,
+  }),
+
+  substanceId: new FormControl('', {
+    nonNullable: true,
+    validators: Validators.required,
+  }),
+
+  instructions: new FormControl('', {
+    nonNullable: true,
+  }),
+
+  frequencyType: new FormControl<ProtocolFrequencyType>('daily', {
+    nonNullable: true,
+    validators: Validators.required,
+  }),
+
+  time: new FormControl('08:00', {
+    nonNullable: true,
+  }),
+
+  continuous: new FormControl(true, {
+    nonNullable: true,
+  }),
+
+  endDate: new FormControl('', {
+    nonNullable: true,
+  }),
+
+  objective: new FormControl('', {
+    nonNullable: true,
+  }),
+
+  startDate: new FormControl(this.todayInputValue(), {
+    nonNullable: true,
+    validators: Validators.required,
+  }),
+
+  title: new FormControl('', {
+    nonNullable: true,
+    validators: Validators.required,
+  }),
+});
 
   readonly protocolActionForm = new FormGroup({
     reason: new FormControl('', { nonNullable: true }),
@@ -538,7 +589,13 @@ readonly activeAthleteLinks = computed(() =>
       this.selectedProtocolId.set('');
 
       this.loadProfessionalAthletes();
-      this.load();
+      
+
+if (module === 'protocols') {
+  this.loadSubstances();
+}
+
+this.load();
     });
 }
 
@@ -618,33 +675,76 @@ readonly activeAthleteLinks = computed(() =>
   }
 
   submitProtocol(): void {
-    if (this.protocolForm.invalid) {
-      this.actionError.set('Informe atleta, título e data inicial.');
-      return;
-    }
-
-    const value = this.protocolForm.getRawValue();
-    this.runAction(
-      this.operations.createProtocol({
-        athleteId: value.athleteId.trim(),
-        continuous: value.continuous,
-        endDate: value.continuous ? null : this.toIsoOrNull(value.endDate),
-        objective: this.nullableText(value.objective),
-        startDate: this.toIso(value.startDate),
-        title: value.title.trim(),
-        items: [],
-      }),
-      'Protocolo criado em rascunho.',
-      () => {
-        this.protocolForm.patchValue({
-          athleteId: '',
-          endDate: '',
-          objective: '',
-          title: '',
-        });
-      },
+  if (this.protocolForm.invalid) {
+    this.actionError.set(
+      'Informe atleta, título, data inicial e item do protocolo.',
     );
+
+    this.protocolForm.markAllAsTouched();
+    return;
   }
+
+  const value = this.protocolForm.getRawValue();
+
+  this.runAction(
+    this.operations.createProtocol({
+      athleteId: value.athleteId.trim(),
+      continuous: value.continuous,
+
+      endDate: value.continuous
+        ? null
+        : this.toIsoOrNull(value.endDate),
+
+      objective: this.nullableText(
+        value.objective,
+      ),
+
+      startDate: this.toIso(
+        value.startDate,
+      ),
+
+      title: value.title.trim(),
+
+      items: [
+        {
+          substanceId: value.substanceId.trim(),
+
+          instructions: this.nullableText(
+            value.instructions,
+          ),
+
+          frequencyType:
+            value.frequencyType,
+
+          weekDays: [],
+
+          time: this.nullableText(
+            value.time,
+          ),
+
+          startDate: null,
+          endDate: null,
+          active: true,
+        },
+      ],
+    }),
+
+    'Protocolo criado em rascunho.',
+
+    () => {
+      this.protocolForm.patchValue({
+        athleteId: '',
+        substanceId: '',
+        instructions: '',
+        frequencyType: 'daily',
+        time: '08:00',
+        endDate: '',
+        objective: '',
+        title: '',
+      });
+    },
+  );
+}
 
   updateProtocolStatus(protocol: ProtocolRecord, status: ProtocolStatus): void {
     this.runAction(
@@ -1209,7 +1309,31 @@ private applyAthleteSelection(
     athleteId,
   );
 }
+private loadSubstances(): void {
+  this.operations
+    .listSubstances({
+      active: true,
+      page: 1,
+      limit: 100,
+      sortBy: 'name',
+      sortOrder: 'asc',
+    })
+    .pipe(
+      takeUntilDestroyed(this.destroyRef),
+    )
+    .subscribe({
+      next: (response) => {
+        this.substances.set(response.data);
+      },
 
+      error: () => {
+        this.substances.set([]);
+        this.actionError.set(
+          'Não foi possível carregar os itens disponíveis.',
+        );
+      },
+    });
+}
 private loadProfessionalAthletes(): void {
   const user = this.auth.currentUser();
 

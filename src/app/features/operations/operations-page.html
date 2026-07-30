@@ -229,6 +229,73 @@
     }
   </select>
 </label>
+<label class="ds-field">
+  <span class="ds-field__label">
+    Item inicial
+  </span>
+
+  <select
+    class="ds-control"
+    formControlName="substanceId"
+  >
+    <option value="">
+      Selecione um item
+    </option>
+
+    @for (
+      substance of substances();
+      track substance.id
+    ) {
+      <option [value]="substance.id">
+        {{ substance.name }}
+      </option>
+    }
+  </select>
+</label>
+
+<label class="ds-field">
+  <span class="ds-field__label">
+    Frequência
+  </span>
+
+  <select
+    class="ds-control"
+    formControlName="frequencyType"
+  >
+    @for (
+      option of protocolFrequencyOptions;
+      track option.value
+    ) {
+      <option [value]="option.value">
+        {{ option.label }}
+      </option>
+    }
+  </select>
+</label>
+
+<label class="ds-field">
+  <span class="ds-field__label">
+    Horário
+  </span>
+
+  <input
+    class="ds-control"
+    type="time"
+    formControlName="time"
+  />
+</label>
+
+<label class="ds-field field-span">
+  <span class="ds-field__label">
+    Instruções do item
+  </span>
+
+  <textarea
+    class="ds-control"
+    formControlName="instructions"
+    placeholder="Ex.: registrar o acompanhamento diariamente"
+  ></textarea>
+</label>
             <label class="ds-field">
               <span class="ds-field__label">Título</span>
               <input class="ds-control" formControlName="title" placeholder="Protocolo de base" />

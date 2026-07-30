@@ -29,8 +29,19 @@ import {
   TrackingRecordStatus,
   TrackingRecordType,
   UserRecord,
+  ProtocolFrequencyType,
+SubstanceRecord,
 } from '../models/operations.model';
-
+export interface ProtocolItemPayload {
+  substanceId: string;
+  instructions: string | null;
+  frequencyType: ProtocolFrequencyType;
+  weekDays: number[];
+  time: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  active: boolean;
+}
 export interface CreateProtocolPayload {
   athleteId: string;
   title: string;
@@ -38,7 +49,7 @@ export interface CreateProtocolPayload {
   startDate: string;
   endDate?: string | null;
   continuous: boolean;
-  items?: [];
+  items: ProtocolItemPayload[];
 }
 
 export interface CreateTrackingRecordPayload {
@@ -122,7 +133,16 @@ export class OperationsService {
       this.optionalReason(reason),
     );
   }
-
+listSubstances(
+  query: OperationQuery = {},
+): Observable<PaginatedResponse<SubstanceRecord>> {
+  return this.http.get<PaginatedResponse<SubstanceRecord>>(
+    `${this.apiUrl}/substances`,
+    {
+      params: this.params(query),
+    },
+  );
+}
   listProtocols(
     query: OperationQuery = {},
   ): Observable<PaginatedResponse<ProtocolRecord>> {
@@ -164,7 +184,7 @@ export class OperationsService {
     protocolId: string,
     payload: Partial<Pick<CreateProtocolPayload, 'continuous' | 'endDate' | 'startDate'>> & {
       changeReason?: string | null;
-      items?: [];
+      items?: ProtocolItemPayload[];
     },
   ): Observable<ApiSuccess<ProtocolMutationResult>> {
     return this.http.post<ApiSuccess<ProtocolMutationResult>>(

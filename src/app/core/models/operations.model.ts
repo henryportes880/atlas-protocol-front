@@ -40,6 +40,17 @@ export type ProtocolStatus =
   | 'draft'
   | 'paused';
 export type ProtocolFrequencyType = 'custom' | 'daily' | 'weekly';
+export interface SubstanceRecord {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  defaultUnit: string | null;
+  active: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface ProtocolRecord {
   id: string;
