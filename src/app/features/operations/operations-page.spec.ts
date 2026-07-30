@@ -1,5 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
+import {
+  ActivatedRoute,
+  convertToParamMap,
+  Router,
+} from '@angular/router';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,6 +37,11 @@ describe('OperationsPage', () => {
               id: 'link-1',
               professionalId: 'professional-1',
               athleteId: 'athlete-1',
+              athlete: {
+  id: 'athlete-1',
+  name: 'Rafael Atleta Demo',
+  email: 'atleta.demo@atlasprotocol.com',
+},
               status: 'active',
               requestedAt: '2026-07-29T12:00:00.000Z',
               acceptedAt: '2026-07-29T12:10:00.000Z',
@@ -54,11 +63,20 @@ describe('OperationsPage', () => {
         { provide: OperationsService, useValue: operationsService },
         { provide: AuthService, useValue: { currentUser: vi.fn(() => professionalUser) } },
         {
-          provide: ActivatedRoute,
-          useValue: {
-            data: of({ module: 'links' }),
-          },
-        },
+  provide: Router,
+  useValue: {
+    navigate: vi.fn(),
+  },
+},
+        {
+  provide: ActivatedRoute,
+  useValue: {
+    data: of({ module: 'links' }),
+    queryParamMap: of(
+      convertToParamMap({}),
+    ),
+  },
+},
       ],
     }).compileComponents();
 
@@ -70,7 +88,14 @@ describe('OperationsPage', () => {
     const content = fixture.nativeElement.textContent;
 
     expect(operationsService.listLinks).toHaveBeenCalledWith({ limit: 20, status: '' });
+    expect(
+  operationsService.listLinks,
+).toHaveBeenCalledWith({
+  status: 'active',
+  page: 1,
+  limit: 100,
+});
     expect(content).toContain('Vínculos');
-    expect(content).toContain('Atleta athlete-1');
+    expect(content).toContain('Rafael Atleta Demo');
   });
 });
