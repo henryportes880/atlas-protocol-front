@@ -17,6 +17,7 @@ export interface LinkRecord {
   id: string;
   professionalId: string;
   athleteId: string;
+  athlete?: LinkedAthleteSummary | null;
   status: LinkStatus;
   requestedAt: string;
   acceptedAt: string | null;
@@ -25,6 +26,11 @@ export interface LinkRecord {
   endedBy: string | null;
   createdAt: string;
   updatedAt: string;
+}
+export interface LinkedAthleteSummary {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export type ProtocolStatus =

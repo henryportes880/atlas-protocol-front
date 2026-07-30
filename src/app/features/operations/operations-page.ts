@@ -15,7 +15,10 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import {
+  ActivatedRoute,
+  Router,
+} from '@angular/router';
 import { finalize, forkJoin, Observable } from 'rxjs';
 
 import { ApiErrorResponse, PaginatedResponse } from '../../core/models/api.model';
@@ -299,6 +302,7 @@ const MODULES_WITH_ATHLETE_FILTER = new Set<OperationModuleKey>([
 export class OperationsPage {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly operations = inject(OperationsService);
 
@@ -309,6 +313,9 @@ export class OperationsPage {
   readonly actionError = signal('');
   readonly successMessage = signal('');
   readonly records = signal<OperationRecord[]>([]);
+  readonly professionalAthleteLinks =
+  signal<LinkRecord[]>([]);
+  
   readonly meta = signal<PageMeta | null>(null);
   readonly protocolVersions = signal<ProtocolVersionRecord[]>([]);
   readonly selectedProtocolId = signal('');
@@ -501,18 +508,39 @@ export class OperationsPage {
   readonly inventoryUnitOptions = INVENTORY_UNIT_OPTIONS;
   readonly inventoryMovementOptions = INVENTORY_MOVEMENT_OPTIONS;
   readonly trackingStatusOptions = TRACKING_STATUS_OPTIONS;
-
+readonly activeAthleteLinks = computed(() =>
+  this.professionalAthleteLinks().filter(
+    (link) => link.status === 'active',
+  ),
+);
   constructor() {
-    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
-      const module = this.toModuleKey(data['module']);
+  this.route.queryParamMap
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe((params) => {
+      const athleteId =
+        params.get('athleteId') ?? '';
+
+      if (athleteId) {
+        this.applyAthleteSelection(athleteId);
+      }
+    });
+
+  this.route.data
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe((data) => {
+      const module =
+        this.toModuleKey(data['module']);
+
       this.moduleKey.set(module);
       this.clearMessages();
       this.records.set([]);
       this.protocolVersions.set([]);
       this.selectedProtocolId.set('');
+
+      this.loadProfessionalAthletes();
       this.load();
     });
-  }
+}
 
   load(): void {
     const module = this.moduleKey();
@@ -1084,7 +1112,135 @@ export class OperationsPage {
   trackById(_index: number, item: { id: string }): string {
     return item.id;
   }
+athleteLabel(link: LinkRecord): string {
+  return (
+    link.athlete?.name ||
+    `Atleta ${this.shortId(link.athleteId)}`
+  );
+}
 
+athleteEmail(link: LinkRecord): string {
+  return link.athlete?.email || '';
+}
+
+selectAthlete(link: LinkRecord): void {
+  this.applyAthleteSelection(link.athleteId);
+
+  this.successMessage.set(
+    `${this.athleteLabel(link)} selecionado.`,
+  );
+
+  if (this.showAthleteFilter()) {
+    this.load();
+  }
+}
+
+viewAthleteProtocols(link: LinkRecord): void {
+  this.router.navigate(
+    ['/app/protocols'],
+    {
+      queryParams: {
+        athleteId: link.athleteId,
+      },
+    },
+  );
+}
+
+viewAthleteTracking(link: LinkRecord): void {
+  this.router.navigate(
+    ['/app/tracking'],
+    {
+      queryParams: {
+        athleteId: link.athleteId,
+      },
+    },
+  );
+}
+
+viewAthleteCheckIns(link: LinkRecord): void {
+  this.router.navigate(
+    ['/app/check-ins'],
+    {
+      queryParams: {
+        athleteId: link.athleteId,
+      },
+    },
+  );
+}
+
+athleteNameById(
+  athleteId: string | null,
+): string {
+  if (!athleteId) {
+    return 'Não informado';
+  }
+
+  const link =
+    this.activeAthleteLinks().find(
+      (item) =>
+        item.athleteId === athleteId,
+    );
+
+  return link
+    ? this.athleteLabel(link)
+    : `Atleta ${this.shortId(athleteId)}`;
+}
+
+private applyAthleteSelection(
+  athleteId: string,
+): void {
+  this.filtersForm.controls.athleteId.setValue(
+    athleteId,
+  );
+
+  this.protocolForm.controls.athleteId.setValue(
+    athleteId,
+  );
+
+  this.trackingForm.controls.athleteId.setValue(
+    athleteId,
+  );
+
+  this.examForm.controls.athleteId.setValue(
+    athleteId,
+  );
+
+  this.progressForm.controls.athleteId.setValue(
+    athleteId,
+  );
+}
+
+private loadProfessionalAthletes(): void {
+  const user = this.auth.currentUser();
+
+  if (
+    user?.role !== 'professional' ||
+    user.verificationStatus !== 'approved'
+  ) {
+    this.professionalAthleteLinks.set([]);
+    return;
+  }
+
+  this.operations
+    .listLinks({
+      status: 'active',
+      page: 1,
+      limit: 100,
+    })
+    .pipe(
+      takeUntilDestroyed(this.destroyRef),
+    )
+    .subscribe({
+      next: (response) => {
+        this.professionalAthleteLinks.set(
+          response.data,
+        );
+      },
+      error: () => {
+        this.professionalAthleteLinks.set([]);
+      },
+    });
+}
   private loadAdmin(): void {
     const query = this.queryFor('admin');
     const adminQuery: OperationQuery = {

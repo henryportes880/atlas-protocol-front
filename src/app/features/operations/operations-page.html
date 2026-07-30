@@ -30,11 +30,41 @@
     }
 
     @if (showAthleteFilter()) {
-      <label class="ds-field">
-        <span class="ds-field__label">Atleta ID</span>
-        <input class="ds-control" formControlName="athleteId" placeholder="ObjectId do atleta" />
-      </label>
+  <label class="ds-field">
+    <span class="ds-field__label">
+      Atleta
+    </span>
+
+    @if (
+      currentRole() === 'professional' &&
+      activeAthleteLinks().length
+    ) {
+      <select
+        class="ds-control"
+        formControlName="athleteId"
+      >
+        <option value="">
+          Todos os atletas
+        </option>
+
+        @for (
+          link of activeAthleteLinks();
+          track link.id
+        ) {
+          <option [value]="link.athleteId">
+            {{ athleteLabel(link) }}
+          </option>
+        }
+      </select>
+    } @else {
+      <input
+        class="ds-control"
+        formControlName="athleteId"
+        placeholder="ObjectId do atleta"
+      />
     }
+  </label>
+}
 
     @if (moduleKey() === 'admin') {
       <label class="ds-field">
@@ -177,9 +207,28 @@
         @if (canCreateProtocol()) {
           <form class="inline-form inline-form--wide" [formGroup]="protocolForm" (ngSubmit)="submitProtocol()">
             <label class="ds-field">
-              <span class="ds-field__label">Atleta ID</span>
-              <input class="ds-control" formControlName="athleteId" placeholder="ObjectId do atleta" />
-            </label>
+  <span class="ds-field__label">
+    Atleta vinculado
+  </span>
+
+  <select
+    class="ds-control"
+    formControlName="athleteId"
+  >
+    <option value="">
+      Selecione um atleta
+    </option>
+
+    @for (
+      link of activeAthleteLinks();
+      track link.id
+    ) {
+      <option [value]="link.athleteId">
+        {{ athleteLabel(link) }}
+      </option>
+    }
+  </select>
+</label>
             <label class="ds-field">
               <span class="ds-field__label">Título</span>
               <input class="ds-control" formControlName="title" placeholder="Protocolo de base" />
@@ -691,21 +740,97 @@
                 @for (link of links(); track trackById($index, link)) {
                   <tr>
                     <td data-label="Vínculo">
-                      <strong>Atleta {{ shortId(link.athleteId) }}</strong>
-                      <small>Prof. {{ shortId(link.professionalId) }}</small>
+                      <strong>
+  {{ athleteLabel(link) }}
+</strong>
+
+<small>
+  @if (athleteEmail(link)) {
+    {{ athleteEmail(link) }}
+  } @else {
+    ID {{ shortId(link.athleteId) }}
+  }
+</small>
                     </td>
                     <td data-label="Status"><span class="ds-badge">{{ statusLabel(link.status) }}</span></td>
                     <td data-label="Solicitado">{{ formatDateTime(link.requestedAt) }}</td>
                     <td data-label="Atualização">{{ formatDateTime(link.updatedAt) }}</td>
-                    <td data-label="Ações" class="row-actions">
-                      @if (currentRole() === 'athlete' && link.status === 'pending') {
-                        <button class="ds-button ds-button--primary" type="button" (click)="acceptLink(link)" [disabled]="actionLoading()">Aceitar</button>
-                        <button class="ds-button ds-button--ghost" type="button" (click)="rejectLink(link)" [disabled]="actionLoading()">Rejeitar</button>
-                      }
-                      @if (link.status === 'active') {
-                        <button class="ds-button ds-button--secondary" type="button" (click)="endLink(link)" [disabled]="actionLoading()">Encerrar</button>
-                      }
-                    </td>
+                   <td data-label="Ações" class="row-actions">
+  @if (
+    currentRole() === 'athlete' &&
+    link.status === 'pending'
+  ) {
+    <button
+      class="ds-button ds-button--primary"
+      type="button"
+      (click)="acceptLink(link)"
+      [disabled]="actionLoading()"
+    >
+      Aceitar
+    </button>
+
+    <button
+      class="ds-button ds-button--ghost"
+      type="button"
+      (click)="rejectLink(link)"
+      [disabled]="actionLoading()"
+    >
+      Rejeitar
+    </button>
+  }
+
+  @if (
+    currentRole() === 'professional' &&
+    link.status === 'active'
+  ) {
+    <button
+      class="ds-button ds-button--ghost"
+      type="button"
+      (click)="selectAthlete(link)"
+      [disabled]="actionLoading()"
+    >
+      Selecionar
+    </button>
+
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="viewAthleteProtocols(link)"
+      [disabled]="actionLoading()"
+    >
+      Protocolos
+    </button>
+
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="viewAthleteTracking(link)"
+      [disabled]="actionLoading()"
+    >
+      Tracking
+    </button>
+
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="viewAthleteCheckIns(link)"
+      [disabled]="actionLoading()"
+    >
+      Check-ins
+    </button>
+  }
+
+  @if (link.status === 'active') {
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="endLink(link)"
+      [disabled]="actionLoading()"
+    >
+      Encerrar
+    </button>
+  }
+</td>
                   </tr>
                 }
               </tbody>
@@ -728,7 +853,9 @@
                   <tr>
                     <td data-label="Protocolo">
                       <strong>{{ protocol.title }}</strong>
-                      <small>Atleta {{ shortId(protocol.athleteId) }}</small>
+                      <small>
+  {{ athleteNameById(protocol.athleteId) }}
+</small>
                     </td>
                     <td data-label="Status"><span class="ds-badge">{{ statusLabel(protocol.status) }}</span></td>
                     <td data-label="Versão">v{{ protocol.currentVersion }}</td>
@@ -772,7 +899,7 @@
                     <td data-label="Tracking"><strong>{{ record.title }}</strong><small>{{ statusLabel(record.type) }}</small></td>
                     <td data-label="Status"><span class="ds-badge">{{ statusLabel(record.status) }}</span></td>
                     <td data-label="Agenda">{{ formatDateTime(record.scheduledFor) }}</td>
-                    <td data-label="Contexto">Atleta {{ shortId(record.athleteId) }} · Protocolo {{ shortId(record.protocolId) }}</td>
+                    <td data-label="Contexto">{{ athleteNameById(record.athleteId) }} · Protocolo {{ shortId(record.protocolId) }}</td>
                     <td data-label="Ações" class="row-actions">
                       <button class="ds-button ds-button--secondary" type="button" (click)="transitionTracking(record)" [disabled]="actionLoading()">Usar no status</button>
                     </td>
@@ -790,7 +917,7 @@
               <tbody>
                 @for (checkIn of checkIns(); track trackById($index, checkIn)) {
                   <tr>
-                    <td data-label="Check-in"><strong>{{ shortId(checkIn.id) }}</strong><small>Atleta {{ shortId(checkIn.athleteId) }}</small></td>
+                    <td data-label="Check-in"><strong>{{ shortId(checkIn.id) }}</strong><small>{{ athleteNameById(checkIn.athleteId) }}</small></td>
                     <td data-label="Status"><span class="ds-badge">{{ statusLabel(checkIn.status) }}</span></td>
                     <td data-label="Semana">{{ formatDate(checkIn.referenceWeek) }}</td>
                     <td data-label="Responses">{{ jsonSummary(checkIn.responses) }}</td>
