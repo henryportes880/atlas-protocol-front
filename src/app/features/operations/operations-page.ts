@@ -699,6 +699,15 @@ readonly activeAthleteLinks = computed(() =>
   }
 
   submitTracking(): void {
+    if (
+  this.currentRole() === 'professional' &&
+  !this.trackingForm.controls.athleteId.value.trim()
+) {
+  this.actionError.set(
+    'Selecione o atleta do tracking.',
+  );
+  return;
+}
     if (this.trackingForm.invalid) {
       this.actionError.set('Informe título e data agendada.');
       return;
@@ -820,9 +829,19 @@ readonly activeAthleteLinks = computed(() =>
   }
 
   submitExam(): void {
+    if (
+  this.currentRole() === 'professional' &&
+  !this.examForm.controls.athleteId.value.trim()
+) {
+  this.actionError.set(
+    'Selecione o atleta do exame.',
+  );
+  return;
+}
     if (this.examForm.invalid) {
       this.actionError.set('Informe título e data do exame.');
       return;
+      
     }
 
     const value = this.examForm.getRawValue();
@@ -858,6 +877,15 @@ readonly activeAthleteLinks = computed(() =>
   }
 
   submitProgress(): void {
+    if (
+  this.currentRole() === 'professional' &&
+  !this.progressForm.controls.athleteId.value.trim()
+) {
+  this.actionError.set(
+    'Selecione o atleta da evolução física.',
+  );
+  return;
+}
     if (this.progressForm.invalid) {
       this.actionError.set('Informe a data de referência.');
       return;

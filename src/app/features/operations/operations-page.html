@@ -288,10 +288,31 @@
           <h2>Novo tracking</h2>
         </header>
         <form class="inline-form inline-form--wide" [formGroup]="trackingForm" (ngSubmit)="submitTracking()">
-          <label class="ds-field">
-            <span class="ds-field__label">Atleta ID</span>
-            <input class="ds-control" formControlName="athleteId" placeholder="Obrigatório para profissional" />
-          </label>
+          @if (currentRole() === 'professional') {
+  <label class="ds-field">
+    <span class="ds-field__label">
+      Atleta vinculado
+    </span>
+
+    <select
+      class="ds-control"
+      formControlName="athleteId"
+    >
+      <option value="">
+        Selecione um atleta
+      </option>
+
+      @for (
+        link of activeAthleteLinks();
+        track link.id
+      ) {
+        <option [value]="link.athleteId">
+          {{ athleteLabel(link) }}
+        </option>
+      }
+    </select>
+  </label>
+}
           <label class="ds-field">
             <span class="ds-field__label">Título</span>
             <input class="ds-control" formControlName="title" placeholder="Peso semanal" />
@@ -394,10 +415,27 @@
           <h2>Novo exame</h2>
         </header>
         <form class="inline-form inline-form--wide" [formGroup]="examForm" (ngSubmit)="submitExam()">
-          <label class="ds-field">
-            <span class="ds-field__label">Atleta ID</span>
-            <input class="ds-control" formControlName="athleteId" placeholder="Obrigatório para profissional" />
-          </label>
+          @if (currentRole() === 'professional') {
+  <label class="ds-field">
+    <span class="ds-field__label">Atleta vinculado</span>
+
+    <select
+      class="ds-control"
+      formControlName="athleteId"
+    >
+      <option value="">Selecione um atleta</option>
+
+      @for (
+        link of activeAthleteLinks();
+        track link.id
+      ) {
+        <option [value]="link.athleteId">
+          {{ athleteLabel(link) }}
+        </option>
+      }
+    </select>
+  </label>
+}
           <label class="ds-field">
             <span class="ds-field__label">Título</span>
             <input class="ds-control" formControlName="title" placeholder="Hemograma completo" />
@@ -441,10 +479,27 @@
           <h2>Novo registro físico</h2>
         </header>
         <form class="inline-form inline-form--wide" [formGroup]="progressForm" (ngSubmit)="submitProgress()">
-          <label class="ds-field">
-            <span class="ds-field__label">Atleta ID</span>
-            <input class="ds-control" formControlName="athleteId" placeholder="Obrigatório para profissional" />
-          </label>
+          @if (currentRole() === 'professional') {
+  <label class="ds-field">
+    <span class="ds-field__label">Atleta vinculado</span>
+
+    <select
+      class="ds-control"
+      formControlName="athleteId"
+    >
+      <option value="">Selecione um atleta</option>
+
+      @for (
+        link of activeAthleteLinks();
+        track link.id
+      ) {
+        <option [value]="link.athleteId">
+          {{ athleteLabel(link) }}
+        </option>
+      }
+    </select>
+  </label>
+}
           <label class="ds-field">
             <span class="ds-field__label">Data</span>
             <input class="ds-control" type="date" formControlName="referenceDate" />
