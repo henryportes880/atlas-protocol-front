@@ -1,0 +1,1056 @@
+<!-- Route-data driven operations workspace. -->
+<section class="operations" [attr.aria-busy]="loading()">
+  <header class="operations-hero ds-card">
+    <div class="hero-icon" aria-hidden="true">
+      <app-atlas-icon [name]="module().icon" [size]="30" />
+    </div>
+    <div>
+      <span class="section-kicker">{{ module().eyebrow }}</span>
+      <h1>{{ module().title }}</h1>
+      <p>{{ module().description }}</p>
+    </div>
+    @if (meta(); as page) {
+      <span class="ds-badge ds-badge--primary">{{ page.total }} registros</span>
+    }
+  </header>
+
+  @if (professionalIsPending()) {
+    <div class="ds-alert ds-alert--warning" role="status">
+      <app-atlas-icon name="shield" [size]="18" />
+      Seu cadastro profissional ainda precisa estar aprovado para operar módulos clínicos.
+    </div>
+  }
+
+  <form class="filters ds-card" [formGroup]="filtersForm" (ngSubmit)="applyFilters()">
+    @if (showSearchFilter() || moduleKey() === 'admin') {
+      <label class="ds-field">
+        <span class="ds-field__label">Busca</span>
+        <input class="ds-control" type="search" formControlName="search" placeholder="Nome, e-mail ou item" />
+      </label>
+    }
+
+    @if (showAthleteFilter()) {
+  <label class="ds-field">
+    <span class="ds-field__label">
+      Atleta
+    </span>
+
+    @if (
+      currentRole() === 'professional' &&
+      activeAthleteLinks().length
+    ) {
+      <select
+        class="ds-control"
+        formControlName="athleteId"
+      >
+        <option value="">
+          Todos os atletas
+        </option>
+
+        @for (
+          link of activeAthleteLinks();
+          track link.id
+        ) {
+          <option [value]="link.athleteId">
+            {{ athleteLabel(link) }}
+          </option>
+        }
+      </select>
+    } @else {
+      <input
+        class="ds-control"
+        formControlName="athleteId"
+        placeholder="ObjectId do atleta"
+      />
+    }
+  </label>
+}
+
+    @if (moduleKey() === 'admin') {
+      <label class="ds-field">
+        <span class="ds-field__label">Perfil</span>
+        <select class="ds-control" formControlName="status">
+          <option value="">Todos</option>
+          <option value="athlete">Atleta</option>
+          <option value="professional">Profissional</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </label>
+      <label class="ds-field">
+        <span class="ds-field__label">Verificação</span>
+        <select class="ds-control" formControlName="type">
+          <option value="">Pendentes</option>
+          <option value="pending">Pendentes</option>
+          <option value="approved">Aprovadas</option>
+          <option value="rejected">Rejeitadas</option>
+        </select>
+      </label>
+    } @else {
+      @if (showStatusFilter()) {
+        <label class="ds-field">
+          <span class="ds-field__label">Status</span>
+          <select class="ds-control" formControlName="status">
+            <option value="">Todos</option>
+            @for (option of statusOptions(); track option.value) {
+              <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      @if (showTypeFilter()) {
+        <label class="ds-field">
+          <span class="ds-field__label">Tipo</span>
+          <select class="ds-control" formControlName="type">
+            <option value="">Todos</option>
+            @if (moduleKey() === 'tracking') {
+              @for (option of trackingTypeOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            } @else {
+              <option value="protocol_status">Status de protocolo</option>
+              <option value="protocol_version">Versão de protocolo</option>
+              <option value="tracking">Tracking</option>
+              <option value="checkin">Check-in</option>
+              <option value="exam">Exame</option>
+              <option value="progress">Evolução</option>
+            }
+          </select>
+        </label>
+      }
+    }
+
+    @if (showDateFilters()) {
+      <label class="ds-field">
+        <span class="ds-field__label">De</span>
+        <input class="ds-control" type="date" formControlName="dateFrom" />
+      </label>
+      <label class="ds-field">
+        <span class="ds-field__label">Até</span>
+        <input class="ds-control" type="date" formControlName="dateTo" />
+      </label>
+    }
+
+    @if (showArchivedFilter()) {
+      <label class="ds-field">
+        <span class="ds-field__label">Arquivados</span>
+        <select class="ds-control" formControlName="archived">
+          <option value="">Padrão</option>
+          <option value="false">Não</option>
+          <option value="true">Sim</option>
+        </select>
+      </label>
+    }
+
+    @if (moduleKey() === 'notifications') {
+      <label class="ds-field">
+        <span class="ds-field__label">Leitura</span>
+        <select class="ds-control" formControlName="read">
+          <option value="">Todas</option>
+          <option value="false">Não lidas</option>
+          <option value="true">Lidas</option>
+        </select>
+      </label>
+    }
+
+    <div class="filter-actions">
+      <button class="ds-button ds-button--primary" type="submit">Filtrar</button>
+      <button class="ds-button ds-button--ghost" type="button" (click)="resetFilters()">Limpar</button>
+    </div>
+  </form>
+
+  @if (actionError()) {
+    <div class="ds-alert ds-alert--danger" role="alert">
+      <app-atlas-icon name="info" [size]="18" />
+      {{ actionError() }}
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="ds-alert ds-alert--positive" role="status">
+      <app-atlas-icon name="check" [size]="18" />
+      {{ successMessage() }}
+    </div>
+  }
+
+  @switch (moduleKey()) {
+    @case ('links') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Ações</span>
+          <h2>Novo vínculo</h2>
+        </header>
+        @if (canCreateLink()) {
+          <form class="inline-form" [formGroup]="linkForm" (ngSubmit)="submitLink()">
+            <label class="ds-field">
+              <span class="ds-field__label">E-mail do atleta</span>
+              <input class="ds-control" type="email" formControlName="athleteEmail" placeholder="atleta@email.com" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Motivo para rejeitar/encerrar</span>
+              <input class="ds-control" formControlName="reason" placeholder="Opcional nas ações da tabela" />
+            </label>
+            <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Solicitar</button>
+          </form>
+        } @else {
+          <p class="action-muted">A criação de vínculos fica disponível para profissionais aprovados.</p>
+        }
+      </section>
+    }
+
+    @case ('protocols') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Prescrição</span>
+          <h2>Criar protocolo</h2>
+        </header>
+        @if (canCreateProtocol()) {
+          <form class="inline-form inline-form--wide" [formGroup]="protocolForm" (ngSubmit)="submitProtocol()">
+            <label class="ds-field">
+  <span class="ds-field__label">
+    Atleta vinculado
+  </span>
+
+  <select
+    class="ds-control"
+    formControlName="athleteId"
+  >
+    <option value="">
+      Selecione um atleta
+    </option>
+
+    @for (
+      link of activeAthleteLinks();
+      track link.id
+    ) {
+      <option [value]="link.athleteId">
+        {{ athleteLabel(link) }}
+      </option>
+    }
+  </select>
+</label>
+            <label class="ds-field">
+              <span class="ds-field__label">Título</span>
+              <input class="ds-control" formControlName="title" placeholder="Protocolo de base" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Início</span>
+              <input class="ds-control" type="date" formControlName="startDate" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Fim</span>
+              <input class="ds-control" type="date" formControlName="endDate" />
+            </label>
+            <label class="check-field">
+              <input type="checkbox" formControlName="continuous" />
+              Contínuo
+            </label>
+            <label class="ds-field field-span">
+              <span class="ds-field__label">Objetivo</span>
+              <textarea class="ds-control" formControlName="objective" placeholder="Objetivo clínico do protocolo"></textarea>
+            </label>
+            <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Criar rascunho</button>
+          </form>
+        } @else {
+          <p class="action-muted">Somente profissionais aprovados podem criar protocolos.</p>
+        }
+
+        <form class="inline-form inline-form--wide secondary-form" [formGroup]="protocolVersionForm" (ngSubmit)="submitProtocolVersion()">
+          <label class="ds-field">
+            <span class="ds-field__label">Protocolo ID</span>
+            <input class="ds-control" formControlName="protocolId" placeholder="Use Carregar versões na tabela" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Novo início</span>
+            <input class="ds-control" type="date" formControlName="startDate" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Novo fim</span>
+            <input class="ds-control" type="date" formControlName="endDate" />
+          </label>
+          <label class="check-field">
+            <input type="checkbox" formControlName="continuous" />
+            Versão contínua
+          </label>
+          <label class="ds-field field-span">
+            <span class="ds-field__label">Motivo da versão</span>
+            <input class="ds-control" formControlName="changeReason" placeholder="Ajuste de ciclo, pausa ou reavaliação" />
+          </label>
+          <button class="ds-button ds-button--secondary" type="submit" [disabled]="actionLoading()">Criar versão</button>
+        </form>
+      </section>
+    }
+
+    @case ('tracking') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Acompanhamento</span>
+          <h2>Novo tracking</h2>
+        </header>
+        <form class="inline-form inline-form--wide" [formGroup]="trackingForm" (ngSubmit)="submitTracking()">
+          <label class="ds-field">
+            <span class="ds-field__label">Atleta ID</span>
+            <input class="ds-control" formControlName="athleteId" placeholder="Obrigatório para profissional" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Título</span>
+            <input class="ds-control" formControlName="title" placeholder="Peso semanal" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Tipo</span>
+            <select class="ds-control" formControlName="type">
+              @for (option of trackingTypeOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Agendado para</span>
+            <input class="ds-control" type="datetime-local" formControlName="scheduledFor" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Protocolo ID</span>
+            <input class="ds-control" formControlName="protocolId" placeholder="Opcional" />
+          </label>
+          <label class="ds-field field-span">
+            <span class="ds-field__label">Notas</span>
+            <textarea class="ds-control" formControlName="notes"></textarea>
+          </label>
+          <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Criar tracking</button>
+        </form>
+
+        <form class="inline-form secondary-form" [formGroup]="trackingActionForm" (ngSubmit)="transitionTracking()">
+          <label class="ds-field">
+            <span class="ds-field__label">Tracking ID</span>
+            <input class="ds-control" formControlName="id" placeholder="Ou use ação da tabela" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Novo status</span>
+            <select class="ds-control" formControlName="status">
+              @for (option of trackingStatusOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Concluído em</span>
+            <input class="ds-control" type="datetime-local" formControlName="completedAt" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Motivo</span>
+            <input class="ds-control" formControlName="reason" placeholder="Obrigatório para perdido/cancelado" />
+          </label>
+          <button class="ds-button ds-button--secondary" type="submit" [disabled]="actionLoading()">Atualizar status</button>
+        </form>
+      </section>
+    }
+
+    @case ('check-ins') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Rotina</span>
+          <h2>Criar ou revisar check-in</h2>
+        </header>
+        @if (canCreateAthleteOnly()) {
+          <form class="inline-form inline-form--wide" [formGroup]="checkInForm" (ngSubmit)="submitCheckIn()">
+            <label class="ds-field">
+              <span class="ds-field__label">Semana de referência</span>
+              <input class="ds-control" type="date" formControlName="referenceWeek" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Profissional ID</span>
+              <input class="ds-control" formControlName="professionalId" placeholder="Opcional se houver vínculo único" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Protocolo ID</span>
+              <input class="ds-control" formControlName="protocolId" placeholder="Opcional" />
+            </label>
+            <label class="ds-field field-span">
+              <span class="ds-field__label">Responses JSON</span>
+              <textarea class="ds-control code-control" formControlName="responsesJson"></textarea>
+            </label>
+            <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Criar check-in</button>
+          </form>
+        }
+
+        <form class="inline-form secondary-form" [formGroup]="checkInReviewForm" (ngSubmit)="reviewCheckIn()">
+          <label class="ds-field">
+            <span class="ds-field__label">Check-in ID</span>
+            <input class="ds-control" formControlName="id" placeholder="Ou use ação da tabela" />
+          </label>
+          <label class="ds-field field-span">
+            <span class="ds-field__label">Comentário de revisão</span>
+            <textarea class="ds-control" formControlName="reviewComment"></textarea>
+          </label>
+          <button class="ds-button ds-button--secondary" type="submit" [disabled]="actionLoading()">Revisar</button>
+        </form>
+      </section>
+    }
+
+    @case ('exams') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Exames</span>
+          <h2>Novo exame</h2>
+        </header>
+        <form class="inline-form inline-form--wide" [formGroup]="examForm" (ngSubmit)="submitExam()">
+          <label class="ds-field">
+            <span class="ds-field__label">Atleta ID</span>
+            <input class="ds-control" formControlName="athleteId" placeholder="Obrigatório para profissional" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Título</span>
+            <input class="ds-control" formControlName="title" placeholder="Hemograma completo" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Data</span>
+            <input class="ds-control" type="date" formControlName="examDate" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Laboratório</span>
+            <input class="ds-control" formControlName="laboratory" />
+          </label>
+          <label class="ds-field field-span">
+            <span class="ds-field__label">Resultados JSON</span>
+            <textarea class="ds-control code-control" formControlName="resultsJson" placeholder='[{"marker":"Ferritina","value":"80","unit":"ng/mL"}]'></textarea>
+          </label>
+          <label class="ds-field field-span">
+            <span class="ds-field__label">Notas</span>
+            <textarea class="ds-control" formControlName="notes"></textarea>
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">PDF opcional</span>
+            <input #examFileInput class="ds-control file-control" type="file" accept=".pdf,application/pdf" (change)="selectExamDocument($event)" />
+          </label>
+          @if (examDocument(); as file) {
+            <p class="file-chip">{{ file.name }} · {{ bytesLabel(file.size) }}</p>
+          }
+          @if (examDocumentError()) {
+            <p class="field-error">{{ examDocumentError() }}</p>
+          }
+          <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Registrar exame</button>
+          <button class="ds-button ds-button--ghost" type="button" (click)="clearExamDocument(examFileInput)">Limpar PDF</button>
+        </form>
+      </section>
+    }
+
+    @case ('progress') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Evolução</span>
+          <h2>Novo registro físico</h2>
+        </header>
+        <form class="inline-form inline-form--wide" [formGroup]="progressForm" (ngSubmit)="submitProgress()">
+          <label class="ds-field">
+            <span class="ds-field__label">Atleta ID</span>
+            <input class="ds-control" formControlName="athleteId" placeholder="Obrigatório para profissional" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Data</span>
+            <input class="ds-control" type="date" formControlName="referenceDate" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Peso kg</span>
+            <input class="ds-control" inputmode="decimal" formControlName="weightKg" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Gordura %</span>
+            <input class="ds-control" inputmode="decimal" formControlName="bodyFatPercent" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Peitoral cm</span>
+            <input class="ds-control" inputmode="decimal" formControlName="chestCm" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Cintura cm</span>
+            <input class="ds-control" inputmode="decimal" formControlName="waistCm" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Braço cm</span>
+            <input class="ds-control" inputmode="decimal" formControlName="armCm" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Coxa cm</span>
+            <input class="ds-control" inputmode="decimal" formControlName="thighCm" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Panturrilha cm</span>
+            <input class="ds-control" inputmode="decimal" formControlName="calfCm" />
+          </label>
+          <label class="ds-field field-span">
+            <span class="ds-field__label">Notas</span>
+            <textarea class="ds-control" formControlName="notes"></textarea>
+          </label>
+          <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Registrar evolução</button>
+        </form>
+      </section>
+    }
+
+    @case ('inventory') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Inventário</span>
+          <h2>Item e movimentação</h2>
+        </header>
+        @if (canCreateAthleteOnly()) {
+          <form class="inline-form inline-form--wide" [formGroup]="inventoryForm" (ngSubmit)="submitInventoryItem()">
+            <label class="ds-field">
+              <span class="ds-field__label">Nome</span>
+              <input class="ds-control" formControlName="name" placeholder="Vitamina D" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Unidade</span>
+              <select class="ds-control" formControlName="unit">
+                @for (option of inventoryUnitOptions; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Quantidade</span>
+              <input class="ds-control" inputmode="decimal" formControlName="quantity" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Estoque baixo</span>
+              <input class="ds-control" inputmode="decimal" formControlName="lowStockThreshold" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Vencimento</span>
+              <input class="ds-control" type="date" formControlName="expirationDate" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Substância ID</span>
+              <input class="ds-control" formControlName="substanceId" placeholder="Opcional" />
+            </label>
+            <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Criar item</button>
+          </form>
+        } @else {
+          <p class="action-muted">Somente atletas podem criar ou movimentar itens de inventário.</p>
+        }
+
+        <form class="inline-form secondary-form" [formGroup]="inventoryMovementForm" (ngSubmit)="submitInventoryMovement()">
+          <label class="ds-field">
+            <span class="ds-field__label">Item ID</span>
+            <input class="ds-control" formControlName="itemId" placeholder="Ou use ação da tabela" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Tipo</span>
+            <select class="ds-control" formControlName="type">
+              @for (option of inventoryMovementOptions; track option.value) {
+                <option [value]="option.value">{{ option.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Quantidade</span>
+            <input class="ds-control" inputmode="decimal" formControlName="quantity" />
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Motivo</span>
+            <input class="ds-control" formControlName="reason" />
+          </label>
+          <button class="ds-button ds-button--secondary" type="submit" [disabled]="actionLoading()">Registrar movimento</button>
+        </form>
+      </section>
+    }
+
+    @case ('notifications') {
+      <section class="action-panel ds-card compact-actions">
+        <div>
+          <span class="section-kicker">Notificações</span>
+          <h2>Caixa de entrada</h2>
+        </div>
+        <button class="ds-button ds-button--secondary" type="button" (click)="markAllNotificationsAsRead()" [disabled]="actionLoading()">Marcar todas como lidas</button>
+      </section>
+    }
+
+    @case ('admin') {
+      <section class="action-panel ds-card">
+        <header>
+          <span class="section-kicker">Aprovações</span>
+          <h2>Rejeitar profissional</h2>
+        </header>
+        @if (canAdmin()) {
+          <form class="inline-form" [formGroup]="adminRejectForm" (ngSubmit)="rejectVerification()">
+            <label class="ds-field">
+              <span class="ds-field__label">Verificação ID</span>
+              <input class="ds-control" formControlName="verificationId" placeholder="Use a ação da tabela" />
+            </label>
+            <label class="ds-field">
+              <span class="ds-field__label">Motivo</span>
+              <input class="ds-control" formControlName="reason" placeholder="Motivo da rejeição" />
+            </label>
+            <button class="ds-button ds-button--danger" type="submit" [disabled]="actionLoading()">Rejeitar</button>
+          </form>
+        } @else {
+          <p class="action-muted">Esta área é exclusiva para administradores.</p>
+        }
+      </section>
+    }
+  }
+
+  @if (loading()) {
+    <section class="loading-state ds-card">
+      <span class="ds-skeleton skeleton-title"></span>
+      <span class="ds-skeleton skeleton-line"></span>
+      <span class="ds-skeleton skeleton-line skeleton-line--short"></span>
+    </section>
+  } @else if (error()) {
+    <section class="error-state ds-card" role="alert">
+      <span class="state-icon state-icon--error">
+        <app-atlas-icon name="info" [size]="24" />
+      </span>
+      <h2>Não foi possível carregar</h2>
+      <p>{{ error() }}</p>
+      <button class="ds-button ds-button--primary" type="button" (click)="load()">Tentar novamente</button>
+    </section>
+  } @else if (moduleKey() === 'admin') {
+    <section class="admin-grid">
+      <article class="ds-card admin-panel">
+        <header class="panel-header">
+          <div>
+            <span class="section-kicker">Usuários</span>
+            <h2>Controle de acesso</h2>
+          </div>
+          <span class="ds-badge">{{ adminUsers().length }} listados</span>
+        </header>
+        <div class="ds-table-wrap">
+          <table class="ds-table ds-table--responsive">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Perfil</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of adminUsers(); track trackById($index, user)) {
+                <tr>
+                  <td data-label="Nome">
+                    <strong>{{ user.name }}</strong>
+                    <small>{{ user.email }}</small>
+                  </td>
+                  <td data-label="Perfil">{{ codeLabel(user.role) }}</td>
+                  <td data-label="Status">
+                    <span class="ds-badge" [class.ds-badge--positive]="user.active" [class.ds-badge--danger]="!user.active">
+                      {{ user.active ? 'Ativo' : 'Bloqueado' }}
+                    </span>
+                  </td>
+                  <td data-label="Ações">
+                    <button class="ds-button ds-button--secondary" type="button" (click)="toggleUserBlocked(user)" [disabled]="actionLoading()">
+                      {{ user.active ? 'Bloquear' : 'Desbloquear' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4">Nenhum usuário encontrado.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="ds-card admin-panel">
+        <header class="panel-header">
+          <div>
+            <span class="section-kicker">Profissionais</span>
+            <h2>Verificações</h2>
+          </div>
+          <span class="ds-badge">{{ adminVerifications().length }} listadas</span>
+        </header>
+        <div class="ds-table-wrap">
+          <table class="ds-table ds-table--responsive">
+            <thead>
+              <tr>
+                <th>Profissional</th>
+                <th>Status</th>
+                <th>Enviado</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (verification of adminVerifications(); track trackById($index, verification)) {
+                <tr>
+                  <td data-label="Profissional">
+                    <strong>{{ verification.user?.name || shortId(verification.userId) }}</strong>
+                    <small>{{ verification.user?.email || verification.userId }}</small>
+                  </td>
+                  <td data-label="Status">{{ statusLabel(verification.verificationStatus) }}</td>
+                  <td data-label="Enviado">{{ formatDateTime(verification.submittedAt) }}</td>
+                  <td data-label="Ações">
+                    <button class="ds-button ds-button--primary" type="button" (click)="approveVerification(verification)" [disabled]="actionLoading() || verification.verificationStatus === 'approved'">Aprovar</button>
+                    <button class="ds-button ds-button--ghost" type="button" (click)="selectVerificationForRejection(verification)">Preparar rejeição</button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4">Nenhuma verificação encontrada.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="ds-card admin-panel admin-panel--wide">
+        <header class="panel-header">
+          <div>
+            <span class="section-kicker">Auditoria</span>
+            <h2>Eventos recentes</h2>
+          </div>
+        </header>
+        <ol class="timeline-list">
+          @for (audit of adminAuditLogs(); track trackById($index, audit)) {
+            <li>
+              <span class="timeline-dot" aria-hidden="true"></span>
+              <div>
+                <strong>{{ codeLabel(audit.action) }}</strong>
+                <p>{{ audit.entityType }} · {{ shortId(audit.entityId) }} · {{ formatDateTime(audit.createdAt) }}</p>
+              </div>
+            </li>
+          } @empty {
+            <li>Nenhum evento de auditoria recente.</li>
+          }
+        </ol>
+      </article>
+    </section>
+  } @else if (!records().length) {
+    <section class="empty-state ds-card">
+      <span class="state-icon">
+        <app-atlas-icon [name]="module().icon" [size]="24" />
+      </span>
+      <h2>{{ module().emptyTitle }}</h2>
+      <p>{{ module().emptyDescription }}</p>
+    </section>
+  } @else {
+    <section class="records ds-card">
+      <header class="panel-header">
+        <div>
+          <span class="section-kicker">Registros</span>
+          <h2>{{ module().title }}</h2>
+        </div>
+        <button class="ds-button ds-button--ghost" type="button" (click)="load()">Atualizar</button>
+      </header>
+
+      @switch (moduleKey()) {
+        @case ('links') {
+          <div class="ds-table-wrap">
+            <table class="ds-table ds-table--responsive">
+              <thead><tr><th>Vínculo</th><th>Status</th><th>Solicitado</th><th>Atualização</th><th>Ações</th></tr></thead>
+              <tbody>
+                @for (link of links(); track trackById($index, link)) {
+                  <tr>
+                    <td data-label="Vínculo">
+                      <strong>
+  {{ athleteLabel(link) }}
+</strong>
+
+<small>
+  @if (athleteEmail(link)) {
+    {{ athleteEmail(link) }}
+  } @else {
+    ID {{ shortId(link.athleteId) }}
+  }
+</small>
+                    </td>
+                    <td data-label="Status"><span class="ds-badge">{{ statusLabel(link.status) }}</span></td>
+                    <td data-label="Solicitado">{{ formatDateTime(link.requestedAt) }}</td>
+                    <td data-label="Atualização">{{ formatDateTime(link.updatedAt) }}</td>
+                   <td data-label="Ações" class="row-actions">
+  @if (
+    currentRole() === 'athlete' &&
+    link.status === 'pending'
+  ) {
+    <button
+      class="ds-button ds-button--primary"
+      type="button"
+      (click)="acceptLink(link)"
+      [disabled]="actionLoading()"
+    >
+      Aceitar
+    </button>
+
+    <button
+      class="ds-button ds-button--ghost"
+      type="button"
+      (click)="rejectLink(link)"
+      [disabled]="actionLoading()"
+    >
+      Rejeitar
+    </button>
+  }
+
+  @if (
+    currentRole() === 'professional' &&
+    link.status === 'active'
+  ) {
+    <button
+      class="ds-button ds-button--ghost"
+      type="button"
+      (click)="selectAthlete(link)"
+      [disabled]="actionLoading()"
+    >
+      Selecionar
+    </button>
+
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="viewAthleteProtocols(link)"
+      [disabled]="actionLoading()"
+    >
+      Protocolos
+    </button>
+
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="viewAthleteTracking(link)"
+      [disabled]="actionLoading()"
+    >
+      Tracking
+    </button>
+
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="viewAthleteCheckIns(link)"
+      [disabled]="actionLoading()"
+    >
+      Check-ins
+    </button>
+  }
+
+  @if (link.status === 'active') {
+    <button
+      class="ds-button ds-button--secondary"
+      type="button"
+      (click)="endLink(link)"
+      [disabled]="actionLoading()"
+    >
+      Encerrar
+    </button>
+  }
+</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('protocols') {
+          <div class="reason-bar" [formGroup]="protocolActionForm">
+            <label class="ds-field">
+              <span class="ds-field__label">Motivo para mudança de status</span>
+              <input class="ds-control" formControlName="reason" placeholder="Opcional" />
+            </label>
+          </div>
+          <div class="ds-table-wrap">
+            <table class="ds-table ds-table--responsive">
+              <thead><tr><th>Protocolo</th><th>Status</th><th>Versão</th><th>Período</th><th>Ações</th></tr></thead>
+              <tbody>
+                @for (protocol of protocols(); track trackById($index, protocol)) {
+                  <tr>
+                    <td data-label="Protocolo">
+                      <strong>{{ protocol.title }}</strong>
+                      <small>
+  {{ athleteNameById(protocol.athleteId) }}
+</small>
+                    </td>
+                    <td data-label="Status"><span class="ds-badge">{{ statusLabel(protocol.status) }}</span></td>
+                    <td data-label="Versão">v{{ protocol.currentVersion }}</td>
+                    <td data-label="Período">
+                      {{ formatDate(protocol.startDate) }} · {{ protocol.continuous ? 'Contínuo' : formatDate(protocol.endDate) }}
+                    </td>
+                    <td data-label="Ações" class="row-actions">
+                      <button class="ds-button ds-button--ghost" type="button" (click)="loadProtocolVersions(protocol)" [disabled]="actionLoading()">Versões</button>
+                      @for (target of protocolStatusTargets(protocol); track target.value) {
+                        <button class="ds-button ds-button--secondary" type="button" (click)="updateProtocolStatus(protocol, target.value)" [disabled]="actionLoading()">
+                          {{ target.label }}
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                  @if (selectedProtocolId() === protocol.id && protocolVersions().length) {
+                    <tr class="version-row">
+                      <td colspan="5">
+                        <strong>Versões carregadas</strong>
+                        <ul>
+                          @for (version of protocolVersions(); track version.id) {
+                            <li>v{{ version.version }} · {{ formatDate(version.createdAt) }} · {{ version.changeReason || 'Sem motivo' }}</li>
+                          }
+                        </ul>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('tracking') {
+          <div class="ds-table-wrap">
+            <table class="ds-table ds-table--responsive">
+              <thead><tr><th>Tracking</th><th>Status</th><th>Agenda</th><th>Contexto</th><th>Ações</th></tr></thead>
+              <tbody>
+                @for (record of trackingRecords(); track trackById($index, record)) {
+                  <tr>
+                    <td data-label="Tracking"><strong>{{ record.title }}</strong><small>{{ statusLabel(record.type) }}</small></td>
+                    <td data-label="Status"><span class="ds-badge">{{ statusLabel(record.status) }}</span></td>
+                    <td data-label="Agenda">{{ formatDateTime(record.scheduledFor) }}</td>
+                    <td data-label="Contexto">{{ athleteNameById(record.athleteId) }} · Protocolo {{ shortId(record.protocolId) }}</td>
+                    <td data-label="Ações" class="row-actions">
+                      <button class="ds-button ds-button--secondary" type="button" (click)="transitionTracking(record)" [disabled]="actionLoading()">Usar no status</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('check-ins') {
+          <div class="ds-table-wrap">
+            <table class="ds-table ds-table--responsive">
+              <thead><tr><th>Check-in</th><th>Status</th><th>Semana</th><th>Responses</th><th>Ações</th></tr></thead>
+              <tbody>
+                @for (checkIn of checkIns(); track trackById($index, checkIn)) {
+                  <tr>
+                    <td data-label="Check-in"><strong>{{ shortId(checkIn.id) }}</strong><small>{{ athleteNameById(checkIn.athleteId) }}</small></td>
+                    <td data-label="Status"><span class="ds-badge">{{ statusLabel(checkIn.status) }}</span></td>
+                    <td data-label="Semana">{{ formatDate(checkIn.referenceWeek) }}</td>
+                    <td data-label="Responses">{{ jsonSummary(checkIn.responses) }}</td>
+                    <td data-label="Ações" class="row-actions">
+                      @if (currentRole() === 'athlete' && checkIn.status === 'pending') {
+                        <button class="ds-button ds-button--primary" type="button" (click)="submitCheckInRecord(checkIn)" [disabled]="actionLoading()">Enviar</button>
+                      }
+                      @if (currentRole() === 'professional' && checkIn.status === 'submitted') {
+                        <button class="ds-button ds-button--secondary" type="button" (click)="reviewCheckIn(checkIn)" [disabled]="actionLoading()">Usar na revisão</button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('exams') {
+          <div class="record-grid">
+            @for (exam of exams(); track trackById($index, exam)) {
+              <article class="record-card">
+                <div class="record-top">
+                  <span class="card-icon"><app-atlas-icon name="flask" [size]="18" /></span>
+                  <span class="ds-badge">{{ exam.archivedAt ? 'Arquivado' : 'Ativo' }}</span>
+                </div>
+                <h3>{{ exam.title }}</h3>
+                <p>{{ resultSummary(exam.results) }}</p>
+                <dl>
+                  <div><dt>Data</dt><dd>{{ formatDate(exam.examDate) }}</dd></div>
+                  <div><dt>Laboratório</dt><dd>{{ exam.laboratory || 'Não informado' }}</dd></div>
+                  <div><dt>PDF</dt><dd>{{ exam.document ? exam.document.originalName + ' · ' + bytesLabel(exam.document.sizeBytes) : 'Sem PDF' }}</dd></div>
+                </dl>
+                @if (!exam.archivedAt) {
+                  <button class="ds-button ds-button--ghost" type="button" (click)="archiveExam(exam)" [disabled]="actionLoading()">Arquivar</button>
+                }
+              </article>
+            }
+          </div>
+        }
+
+        @case ('progress') {
+          <div class="record-grid">
+            @for (record of progressRecords(); track trackById($index, record)) {
+              <article class="record-card">
+                <div class="record-top">
+                  <span class="card-icon"><app-atlas-icon name="chart" [size]="18" /></span>
+                  <span class="ds-badge">{{ record.archivedAt ? 'Arquivado' : 'Ativo' }}</span>
+                </div>
+                <h3>{{ formatDate(record.referenceDate) }}</h3>
+                <p>
+                  Peso {{ record.weightKg ?? 'n/i' }} kg · Gordura {{ record.bodyFatPercent ?? 'n/i' }}%
+                </p>
+                <dl>
+                  <div><dt>Cintura</dt><dd>{{ record.measurements.waistCm ?? 'n/i' }} cm</dd></div>
+                  <div><dt>Braço</dt><dd>{{ record.measurements.armCm ?? 'n/i' }} cm</dd></div>
+                  <div><dt>Notas</dt><dd>{{ record.notes || 'Sem notas' }}</dd></div>
+                </dl>
+                @if (!record.archivedAt) {
+                  <button class="ds-button ds-button--ghost" type="button" (click)="archiveProgress(record)" [disabled]="actionLoading()">Arquivar</button>
+                }
+              </article>
+            }
+          </div>
+        }
+
+        @case ('timeline') {
+          <ol class="timeline-list timeline-list--large">
+            @for (item of historyItems(); track trackById($index, item)) {
+              <li>
+                <span class="timeline-dot" aria-hidden="true"></span>
+                <div>
+                  <span class="ds-badge">{{ statusLabel(item.type) }}</span>
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.summary }} · {{ formatDateTime(item.occurredAt) }}</p>
+                </div>
+              </li>
+            }
+          </ol>
+        }
+
+        @case ('inventory') {
+          <div class="record-grid">
+            @for (item of inventoryItems(); track trackById($index, item)) {
+              <article class="record-card" [class.record-card--warning]="item.lowStock || item.expired">
+                <div class="record-top">
+                  <span class="card-icon"><app-atlas-icon name="info" [size]="18" /></span>
+                  <span class="ds-badge" [class.ds-badge--warning]="item.lowStock || item.expired">{{ item.lowStock ? 'Estoque baixo' : item.expired ? 'Vencido' : 'Ok' }}</span>
+                </div>
+                <h3>{{ item.name }}</h3>
+                <p>{{ item.quantity }} {{ statusLabel(item.unit) }}</p>
+                <dl>
+                  <div><dt>Limite baixo</dt><dd>{{ item.lowStockThreshold ?? 'Sem limite' }}</dd></div>
+                  <div><dt>Vencimento</dt><dd>{{ formatDate(item.expirationDate) }}</dd></div>
+                  <div><dt>Substância</dt><dd>{{ shortId(item.substanceId) }}</dd></div>
+                </dl>
+                <div class="row-actions">
+                  <button class="ds-button ds-button--secondary" type="button" (click)="submitInventoryMovement(item)" [disabled]="actionLoading()">Movimentar</button>
+                  @if (!item.archivedAt) {
+                    <button class="ds-button ds-button--ghost" type="button" (click)="archiveInventoryItem(item)" [disabled]="actionLoading()">Arquivar</button>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+
+        @case ('notifications') {
+          <div class="notification-list">
+            @for (notification of notifications(); track trackById($index, notification)) {
+              <article class="notification-card" [class.notification-card--unread]="!notification.readAt">
+                <span class="card-icon"><app-atlas-icon name="bell" [size]="18" /></span>
+                <div>
+                  <div class="notification-heading">
+                    <strong>{{ notification.title }}</strong>
+                    <span>{{ formatDateTime(notification.createdAt) }}</span>
+                  </div>
+                  <p>{{ notification.message }}</p>
+                  <small>{{ statusLabel(notification.type) }} · {{ notification.entityType || 'Sem entidade' }}</small>
+                </div>
+                <div class="row-actions">
+                  @if (!notification.readAt) {
+                    <button class="ds-button ds-button--secondary" type="button" (click)="markNotificationAsRead(notification)" [disabled]="actionLoading()">Lida</button>
+                  }
+                  @if (!notification.archivedAt) {
+                    <button class="ds-button ds-button--ghost" type="button" (click)="archiveNotification(notification)" [disabled]="actionLoading()">Arquivar</button>
+                  }
+                </div>
+              </article>
+            }
+          </div>
+        }
+      }
+    </section>
+  }
+</section>

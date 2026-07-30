@@ -1,0 +1,349 @@
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+<div class="home-page">
+  <header class="public-header">
+    <div class="public-header__inner">
+      <a class="brand-link" routerLink="/" aria-label="Atlas Protocol — página inicial" (click)="closeMenu()">
+        <app-atlas-brand [compact]="true" />
+      </a>
+
+      <button
+        type="button"
+        class="menu-toggle"
+        (click)="toggleMenu()"
+        [attr.aria-expanded]="menuOpen()"
+        aria-controls="public-navigation"
+        [attr.aria-label]="menuOpen() ? 'Fechar menu' : 'Abrir menu'"
+      >
+        <app-atlas-icon [name]="menuOpen() ? 'close' : 'menu'" [size]="21" />
+      </button>
+
+      <nav id="public-navigation" class="public-navigation" [class.is-open]="menuOpen()" aria-label="Navegação pública">
+        <div class="navigation-links">
+          <a href="#sobre" (click)="closeMenu()">Sobre</a>
+          <a href="#recursos" (click)="closeMenu()">Recursos</a>
+          <a href="#como-funciona" (click)="closeMenu()">Como funciona</a>
+        </div>
+
+        <div class="navigation-actions">
+          @if (isAuthenticated) {
+            <a class="ds-button ds-button--primary" routerLink="/app" (click)="closeMenu()">
+              Ir para o painel
+              <app-atlas-icon name="arrow-right" [size]="16" />
+            </a>
+          } @else {
+            <a class="ds-button ds-button--ghost" routerLink="/login" (click)="closeMenu()">Entrar</a>
+            <a class="ds-button ds-button--primary" routerLink="/register" (click)="closeMenu()">Criar conta</a>
+          }
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <button
+    type="button"
+    class="navigation-backdrop"
+    [class.is-visible]="menuOpen()"
+    [attr.tabindex]="menuOpen() ? 0 : -1"
+    aria-label="Fechar menu"
+    (click)="closeMenu()"
+  ></button>
+
+  <main id="conteudo">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="section-shell hero__grid">
+        <div class="hero__copy">
+          <span class="section-eyebrow">Performance com contexto</span>
+          <h1 id="hero-title">O progresso não acontece <em>no improviso.</em></h1>
+          <p class="hero__description">
+            O Atlas Protocol reúne protocolos, acompanhamentos, check-ins e histórico em uma única estrutura — para que
+            atleta e profissional saibam o que aconteceu, quando aconteceu e como a jornada evoluiu ao longo do tempo.
+          </p>
+
+          <div class="hero__actions">
+            <a class="ds-button ds-button--primary hero__primary-action" href="#sobre">
+              Conhecer o Atlas
+              <app-atlas-icon name="arrow-right" [size]="17" />
+            </a>
+            <a class="ds-button ds-button--secondary" routerLink="/login">Entrar</a>
+          </div>
+
+          <div class="hero__assurances" aria-label="Características da plataforma">
+            <span><app-atlas-icon name="flask" [size]="16" /> Protocolos versionados</span>
+            <span><app-atlas-icon name="clock" [size]="16" /> Histórico preservado</span>
+            <span><app-atlas-icon name="user" [size]="16" /> Acesso por perfil</span>
+          </div>
+        </div>
+
+        <div class="hero__visual" aria-hidden="true">
+          <span class="hero-orbit hero-orbit--outer" aria-hidden="true"></span>
+          <span class="hero-orbit hero-orbit--inner" aria-hidden="true"></span>
+          <span class="hero-node hero-node--one" aria-hidden="true"></span>
+          <span class="hero-node hero-node--two" aria-hidden="true"></span>
+
+          <figure class="hero-figure">
+            <img src="/images/atlas-hero.png" alt="" fetchpriority="high" decoding="async" />
+            <figcaption>
+              <span>Atlas Protocol</span>
+              <strong>O presente muda. O histórico permanece.</strong>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="reason-section" aria-labelledby="reason-title">
+      <div class="section-shell reason-section__grid">
+        <header class="section-heading">
+          <span class="section-eyebrow">Por que o Atlas existe</span>
+          <h2 id="reason-title">Evolução sem histórico vira memória.<br />Informação sem estrutura vira ruído.</h2>
+        </header>
+
+        <div class="reason-section__copy">
+          <p>
+            Protocolos mudam. Acompanhamentos acontecem em momentos diferentes. Check-ins se acumulam. Informações
+            importantes acabam espalhadas entre mensagens, anotações e planilhas.
+          </p>
+          <p>
+            O Atlas foi criado para transformar esses registros em uma linha contínua de acompanhamento, preservando
+            contexto e histórico sem substituir a decisão do profissional.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="platform-section" id="sobre" aria-labelledby="platform-title">
+      <div class="section-shell">
+        <header class="section-heading section-heading--split">
+          <div>
+            <span class="section-eyebrow">Uma única estrutura</span>
+            <h2 id="platform-title">Do protocolo ao histórico,<br />tudo permanece conectado.</h2>
+          </div>
+          <div class="section-heading__copy">
+            <p>
+              O Atlas Protocol é uma plataforma de acompanhamento entre atletas e profissionais. Cada protocolo,
+              alteração, registro e check-in passa a fazer parte de uma mesma linha do tempo.
+            </p>
+            <p>
+              Em vez de enxergar apenas o estado atual, o Atlas permite entender como aquele estado foi construído.
+            </p>
+          </div>
+        </header>
+
+        <div class="feature-grid" id="recursos">
+          @for (feature of features; track feature.title; let index = $index) {
+            <article class="feature-card">
+              <div class="feature-card__topline">
+                <span class="feature-icon"><app-atlas-icon [name]="feature.icon" [size]="22" /></span>
+                <span class="feature-index">0{{ index + 1 }}</span>
+              </div>
+              <h3>{{ feature.title }}</h3>
+              <p>{{ feature.description }}</p>
+              @if (feature.note) {
+                <strong class="feature-card__note">{{ feature.note }}</strong>
+              }
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="journey-section" id="como-funciona" aria-labelledby="journey-title">
+      <div class="section-shell">
+        <header class="section-heading section-heading--light">
+          <span class="section-eyebrow">Do vínculo ao histórico</span>
+          <h2 id="journey-title">O Atlas acompanha a estrutura da relação,<br />não apenas registros soltos.</h2>
+        </header>
+
+        <ol class="journey-steps">
+          @for (step of journeySteps; track step.number) {
+            <li>
+              <span class="step-number">{{ step.number }}</span>
+              <span class="step-marker" aria-hidden="true"></span>
+              <h3>{{ step.title }}</h3>
+              <p>{{ step.description }}</p>
+            </li>
+          }
+        </ol>
+      </div>
+    </section>
+
+    <section class="history-highlight" aria-labelledby="history-highlight-title">
+      <div class="section-shell history-highlight__grid">
+        <header class="section-heading history-highlight__copy">
+          <span class="section-eyebrow">Contexto ao longo do tempo</span>
+          <h2 id="history-highlight-title">
+            Um protocolo mostra o que está acontecendo agora.<br />O Atlas mostra como você chegou até aqui.
+          </h2>
+          <p>
+            Alterações, acompanhamentos e check-ins permanecem conectados a uma linha histórica, permitindo consultar o
+            contexto de cada etapa sem apagar o que veio antes.
+          </p>
+        </header>
+
+        <ol class="concept-timeline" aria-label="Representação conceitual do histórico de um protocolo">
+          @for (point of historyTimeline; track $index) {
+            <li class="concept-timeline__item">
+              <span class="concept-timeline__marker">{{ point.marker }}</span>
+              <strong>{{ point.label }}</strong>
+            </li>
+          }
+        </ol>
+      </div>
+    </section>
+
+    <div class="audience-section" aria-label="Atlas para atletas e profissionais">
+      <div class="section-shell audience-grid">
+        @for (audience of audiences; track audience.id) {
+          <section
+            class="audience-card"
+            [id]="audience.id"
+            [class.audience-card--featured]="audience.featured"
+            [attr.aria-labelledby]="audience.id + '-title'"
+          >
+            <div class="audience-card__header">
+              <span class="audience-icon"><app-atlas-icon [name]="audience.icon" [size]="24" /></span>
+              <span class="audience-label">{{ audience.label }}</span>
+            </div>
+            <h2 [id]="audience.id + '-title'">{{ audience.title }}<br />{{ audience.titleContinuation }}</h2>
+            <p>{{ audience.description }}</p>
+            <ul>
+              @for (item of audience.items; track item) {
+                <li><app-atlas-icon name="check" [size]="16" /> {{ item }}</li>
+              }
+            </ul>
+            <blockquote class="audience-card__closing">{{ audience.closing }}</blockquote>
+          </section>
+        }
+      </div>
+    </div>
+
+    <section class="difference-section" aria-labelledby="difference-title">
+      <div class="section-shell">
+        <header class="section-heading">
+          <span class="section-eyebrow">O que torna o Atlas diferente</span>
+          <h2 id="difference-title">Construído para preservar contexto.</h2>
+        </header>
+
+        <div class="difference-grid">
+          @for (item of differentiators; track item.title; let index = $index) {
+            <article>
+              <div class="difference-card__topline">
+                <span class="difference-icon"><app-atlas-icon [name]="item.icon" [size]="21" /></span>
+                <span class="feature-index">0{{ index + 1 }}</span>
+              </div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.description }}</p>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="atlas-section" aria-labelledby="atlas-section-title">
+      <div class="section-shell atlas-section__grid">
+        <figure class="atlas-editorial" aria-hidden="true">
+          <img src="/images/atlas-hero.png" alt="" loading="lazy" decoding="async" />
+          <span class="atlas-editorial__line" aria-hidden="true"></span>
+        </figure>
+
+        <div class="atlas-section__copy">
+          <span class="section-eyebrow">Por que Atlas?</span>
+          <h2 id="atlas-section-title">
+            Atlas carregava o mundo sobre os ombros.<br />Aqui, ele representa aquilo que sustenta uma evolução:
+            estrutura.
+          </h2>
+          <p class="atlas-section__lead">Resultados são visíveis.</p>
+          <p>O que normalmente não aparece é tudo aquilo que os sustenta:</p>
+          <ul class="atlas-supports" aria-label="O que sustenta os resultados">
+            <li>Decisões</li>
+            <li>Mudanças</li>
+            <li>Registros</li>
+            <li>Consistência</li>
+            <li>Acompanhamento</li>
+            <li>Tempo</li>
+          </ul>
+          <p>O Atlas Protocol foi criado para dar forma a essa estrutura.</p>
+          <blockquote class="atlas-signature">
+            Porque evolução não é apenas onde você chegou.<br />É tudo o que aconteceu até chegar lá.
+          </blockquote>
+        </div>
+      </div>
+    </section>
+
+    <section class="time-section" aria-labelledby="time-title">
+      <div class="section-shell">
+        <header class="section-heading section-heading--split">
+          <div>
+            <span class="section-eyebrow">Histórico em perspectiva</span>
+            <h2 id="time-title">O tempo faz parte do dado.</h2>
+          </div>
+          <p>
+            Saber qual é o protocolo atual é importante. Saber quando ele mudou, o que existia antes e quais registros
+            aconteceram entre essas mudanças cria uma visão muito mais completa da trajetória.
+          </p>
+        </header>
+
+        <ol
+          class="concept-timeline concept-timeline--horizontal"
+          aria-label="Representação conceitual de versões e registros ao longo do tempo"
+        >
+          @for (point of timeTimeline; track $index) {
+            <li class="concept-timeline__item">
+              <span class="concept-timeline__marker">{{ point.marker }}</span>
+              <strong>{{ point.label }}</strong>
+              <span class="concept-timeline__meta">{{ point.meta }}</span>
+            </li>
+          }
+        </ol>
+      </div>
+    </section>
+
+    <section class="final-cta" aria-labelledby="cta-title">
+      <div class="section-shell final-cta__inner">
+        <div class="final-cta__copy">
+          <span class="section-eyebrow">Seu histórico começa no primeiro registro</span>
+          <h2 id="cta-title">Dê estrutura ao que vem depois.</h2>
+          <p>
+            Crie seu espaço no Atlas Protocol e mantenha cada etapa da sua trajetória conectada ao que veio antes.
+          </p>
+        </div>
+        <div class="final-cta__actions">
+          <a class="ds-button final-cta__primary" routerLink="/register">
+            Criar minha conta
+            <app-atlas-icon name="arrow-right" [size]="17" />
+          </a>
+          <a class="ds-button final-cta__secondary" routerLink="/login">Entrar no Atlas</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="public-footer">
+    <div class="section-shell public-footer__grid">
+      <div class="footer-brand">
+        <app-atlas-brand [inverse]="true" />
+        <p>Estrutura para acompanhar aquilo que o tempo transforma.</p>
+      </div>
+
+      <div class="footer-column">
+        <strong>Produto</strong>
+        <a href="#sobre">Sobre o Atlas</a>
+        <a href="#como-funciona">Como funciona</a>
+        <a href="#para-atletas">Para atletas</a>
+        <a href="#para-profissionais">Para profissionais</a>
+      </div>
+
+      <div class="footer-column">
+        <strong>Acesso</strong>
+        <a routerLink="/login">Entrar</a>
+        <a routerLink="/register">Criar conta</a>
+      </div>
+    </div>
+
+    <div class="section-shell footer-bottom">
+      <span>Atlas Protocol © 2026</span>
+      <span>Estrutura · Contexto · Evolução</span>
+    </div>
+  </footer>
+</div>

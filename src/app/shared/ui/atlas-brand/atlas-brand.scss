@@ -1,0 +1,102 @@
+:host {
+  display: inline-flex;
+  min-width: 0;
+}
+
+.atlas-brand {
+  --atlas-brand-ink: var(--color-text);
+  --atlas-brand-accent: var(--color-primary);
+  --atlas-brand-muted: var(--color-text-muted);
+
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--atlas-brand-ink);
+}
+
+.atlas-brand--inverse {
+  --atlas-brand-ink: var(--color-surface);
+  --atlas-brand-accent: var(--color-surface);
+  --atlas-brand-muted: var(--color-border);
+}
+
+.atlas-brand__mark {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.atlas-brand__sphere,
+.atlas-brand__orbit,
+.atlas-brand__monogram {
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.atlas-brand__sphere {
+  stroke: var(--atlas-brand-accent);
+  stroke-width: 1.7;
+}
+
+.atlas-brand__orbit {
+  stroke: var(--atlas-brand-muted);
+  stroke-width: 1.15;
+}
+
+.atlas-brand__monogram {
+  stroke: var(--atlas-brand-accent);
+  stroke-width: 2.1;
+}
+
+.atlas-brand__wordmark {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.atlas-brand__name {
+  overflow: hidden;
+  color: var(--atlas-brand-ink);
+  font-size: 1.125rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+}
+
+.atlas-brand__descriptor {
+  margin-top: 0.28rem;
+  color: var(--atlas-brand-muted);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.atlas-brand--compact {
+  gap: 0.5rem;
+}
+
+.atlas-brand--compact .atlas-brand__mark {
+  width: 2rem;
+  height: 2rem;
+}
+
+.atlas-brand--compact .atlas-brand__wordmark {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.atlas-brand--compact .atlas-brand__name {
+  font-size: 0.95rem;
+}
+
+.atlas-brand--compact .atlas-brand__descriptor {
+  margin-top: 0;
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+}

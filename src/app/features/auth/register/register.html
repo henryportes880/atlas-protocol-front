@@ -1,0 +1,181 @@
+<div class="auth-page">
+  <app-auth-visual />
+
+  <main class="auth-form-panel">
+    <div class="auth-form-wrap">
+      <div class="auth-mobile-brand">
+        <app-atlas-brand />
+      </div>
+
+      <section class="auth-card" aria-labelledby="register-title">
+        <header class="auth-card__header">
+          <span class="auth-kicker">Novo acesso</span>
+          <h1 id="register-title">Crie sua conta</h1>
+          <p class="auth-card__subtitle">
+            {{
+              accountType === 'professional'
+                ? 'Envie seu cadastro profissional para análise com um comprovante em PDF.'
+                : 'Comece seu espaço Atlas com um cadastro simples e seguro.'
+            }}
+          </p>
+        </header>
+
+        <form class="auth-form" (ngSubmit)="submit()" [attr.aria-busy]="loading">
+          <div class="account-type" role="group" aria-label="Tipo de conta">
+            <button
+              type="button"
+              class="account-type__option"
+              [class.is-selected]="accountType === 'athlete'"
+              [attr.aria-pressed]="accountType === 'athlete'"
+              (click)="selectAccountType('athlete')"
+            >
+              <span>Atleta</span>
+              <small>Perfil público padrão</small>
+            </button>
+
+            <button
+              type="button"
+              class="account-type__option"
+              [class.is-selected]="accountType === 'professional'"
+              [attr.aria-pressed]="accountType === 'professional'"
+              (click)="selectAccountType('professional')"
+            >
+              <span>Profissional</span>
+              <small>Análise com PDF</small>
+            </button>
+          </div>
+
+          <label class="ds-field" for="register-name">
+            <span class="ds-field__label">Nome completo</span>
+            <input
+              class="ds-control"
+              id="register-name"
+              name="name"
+              [(ngModel)]="name"
+              placeholder="Como você prefere ser chamado"
+              autocomplete="name"
+              minlength="2"
+              maxlength="120"
+              required
+            />
+          </label>
+
+          <label class="ds-field" for="register-email">
+            <span class="ds-field__label">E-mail</span>
+            <input
+              class="ds-control"
+              id="register-email"
+              type="email"
+              name="email"
+              [(ngModel)]="email"
+              placeholder="voce@email.com"
+              autocomplete="email"
+              maxlength="254"
+              required
+            />
+          </label>
+
+          <label class="ds-field" for="register-password">
+            <span class="ds-field__label">Senha</span>
+            <span class="ds-input-wrap">
+              <input
+                class="ds-control"
+                id="register-password"
+                [type]="showPassword ? 'text' : 'password'"
+                name="password"
+                [(ngModel)]="password"
+                placeholder="Crie uma senha"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="72"
+                aria-describedby="register-password-hint"
+                required
+              />
+              <button
+                type="button"
+                class="ds-input-action"
+                (click)="showPassword = !showPassword"
+                [attr.aria-label]="showPassword ? 'Ocultar senha' : 'Mostrar senha'"
+                [attr.aria-pressed]="showPassword"
+              >
+                <app-atlas-icon [name]="showPassword ? 'eye-off' : 'eye'" [size]="18" />
+              </button>
+            </span>
+            <span class="ds-field__hint" id="register-password-hint">Use entre 8 e 72 caracteres.</span>
+          </label>
+
+          <div class="professional-document" *ngIf="accountType === 'professional'">
+            <label
+              class="document-drop"
+              for="register-document"
+              [class.has-error]="documentError"
+              [class.has-file]="documentFile"
+            >
+              <input
+                #documentInput
+                class="document-drop__input"
+                id="register-document"
+                type="file"
+                name="document"
+                accept=".pdf,application/pdf"
+                (change)="selectDocument($event)"
+              />
+              <span class="document-drop__icon">
+                <app-atlas-icon name="clipboard" [size]="20" />
+              </span>
+              <span class="document-drop__copy">
+                <strong>
+                  {{ documentFile ? documentFile.name : 'Comprovante profissional em PDF' }}
+                </strong>
+                <small>
+                  {{
+                    documentFile
+                      ? documentSizeLabel(documentFile)
+                      : 'PDF obrigatório, até 5 MB.'
+                  }}
+                </small>
+              </span>
+            </label>
+
+            <button
+              type="button"
+              class="document-clear"
+              *ngIf="documentFile"
+              (click)="clearDocument(); documentInput.value = ''"
+            >
+              Remover arquivo
+            </button>
+
+            <p class="document-error" role="alert" *ngIf="documentError">
+              {{ documentError }}
+            </p>
+          </div>
+
+          <div class="ds-alert ds-alert--danger" role="alert" aria-live="polite" *ngIf="error">
+            <app-atlas-icon name="info" [size]="18" />
+            <span>{{ error }}</span>
+          </div>
+
+          <button class="ds-button ds-button--primary auth-submit" type="submit" [disabled]="loading">
+            <span class="loading-dot" *ngIf="loading" aria-hidden="true"></span>
+            <span>{{ submitLabel() }}</span>
+            <app-atlas-icon *ngIf="!loading" name="arrow-right" [size]="18" />
+          </button>
+        </form>
+
+        <p class="auth-switch">Já possui uma conta? <a routerLink="/login">Entrar</a></p>
+      </section>
+
+      <p class="auth-trust">
+        <app-atlas-icon name="shield" [size]="14" />
+        <span>
+          {{
+            accountType === 'professional'
+              ? 'Profissionais entram com acesso restrito até a aprovação.'
+              : 'O cadastro público cria um perfil de atleta.'
+          }}
+        </span>
+      </p>
+    </div>
+  </main>
+</div>

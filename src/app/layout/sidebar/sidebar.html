@@ -1,0 +1,85 @@
+<aside id="app-sidebar" aria-label="Navegação principal">
+  <div class="sidebar-header">
+    <app-atlas-brand />
+    <button type="button" class="close-button" (click)="close()" aria-label="Fechar menu">
+      <app-atlas-icon name="close" [size]="20" />
+    </button>
+  </div>
+
+  <nav>
+    <div class="nav-group">
+      <span class="nav-label">Principal</span>
+      @for (item of visiblePrimaryItems(); track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          #primaryLink="routerLinkActive"
+          [attr.aria-current]="primaryLink.isActive ? 'page' : null"
+          (click)="close()"
+        >
+          <app-atlas-icon [name]="item.icon" [size]="19" />
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </div>
+
+    <div class="nav-group">
+      <span class="nav-label">Operação</span>
+      @for (item of visibleRoutineItems(); track item.route) {
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="is-active"
+          [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+          #routineLink="routerLinkActive"
+          [attr.aria-current]="routineLink.isActive ? 'page' : null"
+          (click)="close()"
+        >
+          <app-atlas-icon [name]="item.icon" [size]="19" />
+          <span>{{ item.label }}</span>
+        </a>
+      }
+    </div>
+
+    @if (visibleAdminItems().length) {
+      <div class="nav-group">
+        <span class="nav-label">Admin</span>
+        @for (item of visibleAdminItems(); track item.route) {
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="is-active"
+            [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+            #adminLink="routerLinkActive"
+            [attr.aria-current]="adminLink.isActive ? 'page' : null"
+            (click)="close()"
+          >
+            <app-atlas-icon [name]="item.icon" [size]="19" />
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </div>
+    }
+  </nav>
+
+  <div class="sidebar-note">
+    <span class="note-mark" aria-hidden="true"></span>
+    <div>
+      <strong>Módulos integrados</strong>
+      <p>As telas agora consomem os endpoints versionados do backend.</p>
+    </div>
+  </div>
+
+  <footer class="sidebar-footer">
+    <div class="mini-profile">
+      <span class="avatar" aria-hidden="true">{{ userInitials() }}</span>
+      <div class="profile-copy">
+        <strong>{{ auth.currentUser()?.name || 'Usuário Atlas' }}</strong>
+        <span>{{ roleLabel() }}</span>
+      </div>
+    </div>
+
+    <button type="button" class="logout-button" (click)="logout()" aria-label="Sair do Atlas">
+      <app-atlas-icon name="logout" [size]="18" />
+    </button>
+  </footer>
+</aside>

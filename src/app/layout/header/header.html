@@ -1,0 +1,37 @@
+<header>
+  <div class="header-leading">
+    <button
+      type="button"
+      class="menu-button"
+      (click)="menuToggle.emit()"
+      aria-label="Abrir menu de navegação"
+      aria-controls="app-sidebar"
+      [attr.aria-expanded]="navigationOpen"
+    >
+      <app-atlas-icon name="menu" [size]="21" />
+    </button>
+
+    <div class="page-context">
+      <span class="eyebrow">{{ pageEyebrow() }}</span>
+      <div class="title-line">
+        <h2>{{ pageTitle() }}</h2>
+        <span class="breadcrumb" aria-label="Navegação estrutural">{{ breadcrumb() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <a routerLink="/app/notifications" class="notification-button" aria-label="Abrir notificações">
+      <app-atlas-icon name="bell" [size]="19" />
+      <span class="notification-label">Notificações</span>
+    </a>
+
+    <div class="user-summary">
+      <div class="user-copy">
+        <strong>{{ auth.currentUser()?.name || 'Usuário Atlas' }}</strong>
+        <span>{{ roleLabel() }}</span>
+      </div>
+      <span class="avatar" aria-hidden="true">{{ userInitials() }}</span>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,19 @@
+<section class="feature-placeholder" aria-labelledby="feature-placeholder-title">
+  <div class="feature-placeholder__icon" aria-hidden="true">
+    <app-atlas-icon [name]="icon()" [size]="32" />
+  </div>
+
+  <p class="feature-placeholder__eyebrow">Módulo em preparação</p>
+  <h1 id="feature-placeholder-title">{{ title() }}</h1>
+  <p class="feature-placeholder__description">{{ description() }}</p>
+
+  <p class="feature-placeholder__notice">
+    Esta área seguirá o padrão visual Atlas, com clareza, consistência e uma experiência
+    cuidadosamente organizada.
+  </p>
+
+  <a class="feature-placeholder__back" routerLink="/app">
+    <span aria-hidden="true">←</span>
+    Voltar à visão geral
+  </a>
+</section>
