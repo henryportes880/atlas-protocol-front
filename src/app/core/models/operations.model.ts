@@ -40,12 +40,19 @@ export type ProtocolStatus =
   | 'draft'
   | 'paused';
 export type ProtocolFrequencyType = 'custom' | 'daily' | 'weekly';
+export type SubstanceCategory =
+  | 'hormone'
+  | 'medication'
+  | 'other'
+  | 'peptide'
+  | 'supplement'
+  | 'vitamin';
 export interface SubstanceRecord {
   id: string;
   name: string;
   description: string | null;
-  category: string;
-  defaultUnit: string | null;
+  category: SubstanceCategory;
+  defaultUnit: InventoryUnit | null;
   active: boolean;
   createdBy: string;
   createdAt: string;

@@ -229,29 +229,39 @@
     }
   </select>
 </label>
-<label class="ds-field">
-  <span class="ds-field__label">
-    Item inicial
-  </span>
+<div class="substance-selector">
+  <label class="ds-field">
+    <span class="ds-field__label">
+      Item inicial
+    </span>
 
-  <select
-    class="ds-control"
-    formControlName="substanceId"
-  >
-    <option value="">
-      Selecione um item
-    </option>
-
-    @for (
-      substance of substances();
-      track substance.id
-    ) {
-      <option [value]="substance.id">
-        {{ substance.name }}
+    <select
+      class="ds-control"
+      formControlName="substanceId"
+    >
+      <option value="">
+        Selecione um item
       </option>
-    }
-  </select>
-</label>
+
+      @for (
+        substance of substances();
+        track substance.id
+      ) {
+        <option [value]="substance.id">
+          {{ substance.name }}
+        </option>
+      }
+    </select>
+  </label>
+  <button
+    class="ds-button ds-button--ghost"
+    type="button"
+    [disabled]="substanceCreationLoading()"
+    (click)="toggleSubstanceCreation()"
+  >
+    {{ substanceCreationOpen() ? 'Cancelar criação' : 'Criar novo item' }}
+  </button>
+</div>
 
 <label class="ds-field">
   <span class="ds-field__label">
@@ -318,6 +328,71 @@
             </label>
             <button class="ds-button ds-button--primary" type="submit" [disabled]="actionLoading()">Criar rascunho</button>
           </form>
+          @if (substanceCreationOpen()) {
+            <form
+              class="inline-form inline-form--wide secondary-form substance-creation-form"
+              [formGroup]="newSubstanceForm"
+              (ngSubmit)="submitNewSubstance()"
+            >
+              <div class="field-span">
+                <span class="section-kicker">Biblioteca</span>
+                <h3>Novo item do protocolo</h3>
+              </div>
+              <label class="ds-field">
+                <span class="ds-field__label">Nome</span>
+                <input
+                  class="ds-control"
+                  formControlName="name"
+                  maxlength="120"
+                  placeholder="Nome do item"
+                />
+              </label>
+              <label class="ds-field">
+                <span class="ds-field__label">Categoria</span>
+                <select class="ds-control" formControlName="category">
+                  <option value="">Selecione uma categoria</option>
+                  @for (option of substanceCategoryOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </label>
+              <label class="ds-field">
+                <span class="ds-field__label">Unidade padrão</span>
+                <select class="ds-control" formControlName="defaultUnit">
+                  <option value="">Sem unidade padrão</option>
+                  @for (option of inventoryUnitOptions; track option.value) {
+                    <option [value]="option.value">{{ option.label }}</option>
+                  }
+                </select>
+              </label>
+              <label class="ds-field field-span">
+                <span class="ds-field__label">Descrição</span>
+                <textarea
+                  class="ds-control"
+                  formControlName="description"
+                  maxlength="1000"
+                  placeholder="Opcional"
+                ></textarea>
+              </label>
+              <div class="compact-actions field-span">
+                <button
+                  class="ds-button ds-button--primary"
+                  type="submit"
+                  [disabled]="substanceCreationLoading()"
+                >
+                  {{ substanceCreationLoading() ? 'Criando item...' : 'Criar item' }}
+                </button>
+                <button
+                  class="ds-button ds-button--ghost"
+                  type="button"
+                  [disabled]="substanceCreationLoading()"
+                  (click)="toggleSubstanceCreation()"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          }
         } @else {
           <p class="action-muted">Somente profissionais aprovados podem criar protocolos.</p>
         }

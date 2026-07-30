@@ -63,6 +63,41 @@ describe('OperationsService', () => {
     http.verify();
   });
 
+  it('cria substância com payload tipado para uso no protocolo', () => {
+    const { http, service } = setup();
+    const payload = {
+      name: 'Creatina',
+      description: 'Item criado durante o protocolo.',
+      category: 'supplement' as const,
+      defaultUnit: 'g' as const,
+    };
+
+    service.createSubstance(payload).subscribe((response) => {
+      expect(response.data.substance.name).toBe('Creatina');
+    });
+
+    const request = http.expectOne(`${environment.apiUrl}/substances`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    request.flush({
+      success: true,
+      data: {
+        substance: {
+          id: 'substance-1',
+          name: 'Creatina',
+          description: 'Item criado durante o protocolo.',
+          category: 'supplement',
+          defaultUnit: 'g',
+          active: true,
+          createdBy: 'professional-1',
+          createdAt: '2026-07-30T12:00:00.000Z',
+          updatedAt: '2026-07-30T12:00:00.000Z',
+        },
+      },
+    });
+    http.verify();
+  });
+
   it('envia exame como multipart com results e PDF opcional', () => {
     const { http, service } = setup();
     const document = new File(['%PDF-1.4'], 'exame.pdf', {

@@ -1,10 +1,11 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import {
   ActivatedRoute,
   convertToParamMap,
   Router,
 } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthUser } from '../../core/models/auth.model';
@@ -15,6 +16,7 @@ import { OperationsPage } from './operations-page';
 describe('OperationsPage', () => {
   let fixture: ComponentFixture<OperationsPage>;
   let operationsService: {
+    createSubstance: ReturnType<typeof vi.fn>;
     listLinks: ReturnType<typeof vi.fn>;
   };
 
@@ -29,6 +31,24 @@ describe('OperationsPage', () => {
 
   beforeEach(async () => {
     operationsService = {
+      createSubstance: vi.fn(() =>
+        of({
+          success: true,
+          data: {
+            substance: {
+              id: 'substance-1',
+              name: 'Creatina',
+              description: null,
+              category: 'supplement',
+              defaultUnit: 'g',
+              active: true,
+              createdBy: 'professional-1',
+              createdAt: '2026-07-30T12:00:00.000Z',
+              updatedAt: '2026-07-30T12:00:00.000Z',
+            },
+          },
+        }),
+      ),
       listLinks: vi.fn(() =>
         of({
           success: true,
@@ -97,5 +117,67 @@ describe('OperationsPage', () => {
 });
     expect(content).toContain('Vínculos');
     expect(content).toContain('Rafael Atleta Demo');
+  });
+
+  it('adiciona e seleciona o novo item sem recarregar a página', () => {
+    const component = fixture.componentInstance;
+    component.substanceCreationOpen.set(true);
+    component.newSubstanceForm.setValue({
+      name: 'Creatina',
+      description: '',
+      category: 'supplement',
+      defaultUnit: 'g',
+    });
+
+    component.submitNewSubstance();
+
+    expect(operationsService.createSubstance).toHaveBeenCalledWith({
+      name: 'Creatina',
+      description: null,
+      category: 'supplement',
+      defaultUnit: 'g',
+    });
+    expect(component.substances().map((item) => item.id)).toContain(
+      'substance-1',
+    );
+    expect(component.protocolForm.controls.substanceId.value).toBe(
+      'substance-1',
+    );
+    expect(component.substanceCreationOpen()).toBe(false);
+    expect(component.successMessage()).toBe(
+      'Item criado e selecionado no protocolo.',
+    );
+  });
+
+  it('exibe a mensagem de erro retornada pela API ao criar item', () => {
+    operationsService.createSubstance.mockReturnValueOnce(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 409,
+            error: {
+              success: false,
+              error: {
+                code: 'DUPLICATE_RESOURCE',
+                message: 'Já existe uma substância com este nome.',
+                fields: [],
+              },
+            },
+          }),
+      ),
+    );
+    const component = fixture.componentInstance;
+    component.newSubstanceForm.setValue({
+      name: 'Creatina',
+      description: '',
+      category: 'supplement',
+      defaultUnit: '',
+    });
+
+    component.submitNewSubstance();
+
+    expect(component.actionError()).toBe(
+      'Já existe uma substância com este nome.',
+    );
   });
 });

@@ -118,6 +118,19 @@
   border-top: 1px solid var(--color-border);
 }
 
+.substance-selector {
+  display: grid;
+  gap: 8px;
+}
+
+.substance-selector .ds-button {
+  justify-self: start;
+}
+
+.substance-creation-form h3 {
+  margin: 4px 0 0;
+}
+
 .field-span {
   grid-column: 1 / -1;
 }

@@ -48,7 +48,8 @@ import {
   TrackingRecordType,
   UserRecord,
   ProtocolFrequencyType,
-SubstanceRecord,
+  SubstanceCategory,
+  SubstanceRecord,
 } from '../../core/models/operations.model';
 import { AuthService } from '../../core/services/auth.service';
 import { OperationsService } from '../../core/services/operations.service';
@@ -227,6 +228,15 @@ const INVENTORY_UNIT_OPTIONS: SelectOption<InventoryUnit>[] = [
   { value: 'box', label: 'Caixa' },
 ];
 
+const SUBSTANCE_CATEGORY_OPTIONS: SelectOption<SubstanceCategory>[] = [
+  { value: 'hormone', label: 'Hormônio' },
+  { value: 'medication', label: 'Medicamento' },
+  { value: 'other', label: 'Outro' },
+  { value: 'peptide', label: 'Peptídeo' },
+  { value: 'supplement', label: 'Suplemento' },
+  { value: 'vitamin', label: 'Vitamina' },
+];
+
 const INVENTORY_MOVEMENT_OPTIONS: SelectOption<InventoryMovementType>[] = [
   { value: 'in', label: 'Entrada' },
   { value: 'out', label: 'Saída' },
@@ -311,6 +321,8 @@ export class OperationsPage {
   readonly moduleKey = signal<OperationModuleKey>('links');
   readonly loading = signal(true);
   readonly actionLoading = signal(false);
+  readonly substanceCreationLoading = signal(false);
+  readonly substanceCreationOpen = signal(false);
   readonly error = signal('');
   readonly actionError = signal('');
   readonly successMessage = signal('');
@@ -406,6 +418,28 @@ export class OperationsPage {
     validators: Validators.required,
   }),
 });
+
+  readonly newSubstanceForm = new FormGroup({
+    name: new FormControl('', {
+      nonNullable: true,
+      validators: [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(120),
+      ],
+    }),
+    description: new FormControl('', {
+      nonNullable: true,
+      validators: Validators.maxLength(1000),
+    }),
+    category: new FormControl<SubstanceCategory | ''>('', {
+      nonNullable: true,
+      validators: Validators.required,
+    }),
+    defaultUnit: new FormControl<InventoryUnit | ''>('', {
+      nonNullable: true,
+    }),
+  });
 
   readonly protocolActionForm = new FormGroup({
     reason: new FormControl('', { nonNullable: true }),
@@ -557,6 +591,7 @@ export class OperationsPage {
 
   readonly trackingTypeOptions = TRACKING_TYPE_OPTIONS;
   readonly inventoryUnitOptions = INVENTORY_UNIT_OPTIONS;
+  readonly substanceCategoryOptions = SUBSTANCE_CATEGORY_OPTIONS;
   readonly inventoryMovementOptions = INVENTORY_MOVEMENT_OPTIONS;
   readonly trackingStatusOptions = TRACKING_STATUS_OPTIONS;
 readonly activeAthleteLinks = computed(() =>
@@ -745,6 +780,71 @@ this.load();
     },
   );
 }
+
+  toggleSubstanceCreation(): void {
+    if (this.substanceCreationLoading()) return;
+
+    if (this.substanceCreationOpen()) {
+      this.resetNewSubstanceForm();
+      this.substanceCreationOpen.set(false);
+      return;
+    }
+
+    this.actionError.set('');
+    this.successMessage.set('');
+    this.substanceCreationOpen.set(true);
+  }
+
+  submitNewSubstance(): void {
+    if (this.newSubstanceForm.invalid) {
+      this.actionError.set(
+        'Informe nome e categoria válidos para o novo item.',
+      );
+      this.newSubstanceForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.newSubstanceForm.getRawValue();
+    if (!value.category) return;
+
+    this.substanceCreationLoading.set(true);
+    this.actionError.set('');
+    this.successMessage.set('');
+
+    this.operations
+      .createSubstance({
+        name: value.name.trim(),
+        description: this.nullableText(value.description),
+        category: value.category,
+        defaultUnit: value.defaultUnit || null,
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.substanceCreationLoading.set(false)),
+      )
+      .subscribe({
+        next: (response) => {
+          const substance = response.data.substance;
+          this.substances.update((items) =>
+            [...items.filter((item) => item.id !== substance.id), substance]
+              .sort((left, right) =>
+                left.name.localeCompare(right.name, 'pt-BR', {
+                  sensitivity: 'base',
+                }),
+              ),
+          );
+          this.protocolForm.controls.substanceId.setValue(substance.id);
+          this.resetNewSubstanceForm();
+          this.substanceCreationOpen.set(false);
+          this.successMessage.set(
+            'Item criado e selecionado no protocolo.',
+          );
+        },
+        error: (error: unknown) => {
+          this.actionError.set(this.resolveErrorMessage(error));
+        },
+      });
+  }
 
   updateProtocolStatus(protocol: ProtocolRecord, status: ProtocolStatus): void {
     this.runAction(
@@ -1561,6 +1661,15 @@ private loadProfessionalAthletes(): void {
   private nullableText(value: string): string | null {
     const cleanValue = value.trim();
     return cleanValue ? cleanValue : null;
+  }
+
+  private resetNewSubstanceForm(): void {
+    this.newSubstanceForm.reset({
+      name: '',
+      description: '',
+      category: '',
+      defaultUnit: '',
+    });
   }
 
   private undefinedText(value: string): string | undefined {

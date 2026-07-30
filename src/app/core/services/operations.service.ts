@@ -30,7 +30,8 @@ import {
   TrackingRecordType,
   UserRecord,
   ProtocolFrequencyType,
-SubstanceRecord,
+  SubstanceCategory,
+  SubstanceRecord,
 } from '../models/operations.model';
 export interface ProtocolItemPayload {
   substanceId: string;
@@ -50,6 +51,13 @@ export interface CreateProtocolPayload {
   endDate?: string | null;
   continuous: boolean;
   items: ProtocolItemPayload[];
+}
+
+export interface CreateSubstancePayload {
+  name: string;
+  description: string | null;
+  category: SubstanceCategory;
+  defaultUnit: InventoryUnit | null;
 }
 
 export interface CreateTrackingRecordPayload {
@@ -133,16 +141,26 @@ export class OperationsService {
       this.optionalReason(reason),
     );
   }
-listSubstances(
-  query: OperationQuery = {},
-): Observable<PaginatedResponse<SubstanceRecord>> {
-  return this.http.get<PaginatedResponse<SubstanceRecord>>(
-    `${this.apiUrl}/substances`,
-    {
-      params: this.params(query),
-    },
-  );
-}
+  listSubstances(
+    query: OperationQuery = {},
+  ): Observable<PaginatedResponse<SubstanceRecord>> {
+    return this.http.get<PaginatedResponse<SubstanceRecord>>(
+      `${this.apiUrl}/substances`,
+      {
+        params: this.params(query),
+      },
+    );
+  }
+
+  createSubstance(
+    payload: CreateSubstancePayload,
+  ): Observable<ApiSuccess<{ substance: SubstanceRecord }>> {
+    return this.http.post<ApiSuccess<{ substance: SubstanceRecord }>>(
+      `${this.apiUrl}/substances`,
+      payload,
+    );
+  }
+
   listProtocols(
     query: OperationQuery = {},
   ): Observable<PaginatedResponse<ProtocolRecord>> {
